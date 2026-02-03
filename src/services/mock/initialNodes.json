@@ -1,0 +1,52 @@
+[
+  {
+    "id": 1,
+    "category": "basic",
+    "executionId": "exec/number",
+    "title": "Number",
+    "outputs": [{ "name": "value", "type": "number" }],
+    "properties": [
+      { "label": "数值", "name": "value", "type": "inputNumber", "default": 0, "min": -9999, "max": 9999 }
+    ]
+  },
+  {
+    "id": 2,
+    "category": "basic",
+    "executionId": "exec/number",
+    "title": "Number",
+    "outputs": [{ "name": "value", "type": "number" }],
+    "properties": [
+      { "label": "数值", "name": "value", "type": "inputNumber", "default": 0, "min": -9999, "max": 9999 }
+    ]
+  },
+  {
+    "id": 3,
+    "category": "math",
+    "executionId": "exec/add",
+    "title": "Add",
+    "inputs": [
+      { "name": "a", "type": "number" },
+      { "name": "b", "type": "number" }
+    ],
+    "outputs": [{ "name": "sum", "type": "number" }]
+  },
+  {
+    "id": 4,
+    "category": "math",
+    "executionId": "exec/multiply",
+    "title": "Multiply",
+    "inputs": [
+      { "name": "a", "type": "number" },
+      { "name": "b", "type": "number" }
+    ],
+    "outputs": [{ "name": "product", "type": "number" }]
+  },
+  {
+    "id": 5,
+    "category": "debug",
+    "executionId": "exec/print",
+    "title": "Print",
+    "inputs": [{ "name": "value", "type": "prompt" }]
+  }
+]
+

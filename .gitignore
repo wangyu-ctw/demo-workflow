@@ -1,0 +1,21 @@
+node_modules/
+dist/
+dist-ssr/
+.vite/
+coverage/
+.DS_Store
+
+# logs
+npm-debug.log*
+pnpm-debug.log*
+yarn-error.log*
+
+# env files
+.env
+.env.*
+!.env.example
+
+# editor/ide
+.idea/
+.vscode/
+

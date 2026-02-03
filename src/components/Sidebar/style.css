@@ -1,0 +1,120 @@
+.sidebar {
+  width: 48px;
+  background: #0b0d12;
+  border-right: 1px solid #2A2A2A;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 10px;
+  gap: 12px;
+  position: relative;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  align-items: center;
+}
+
+.nav-item-group {
+  position: relative;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.nav-item {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  background: #333333;
+  color: #c8d0db;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.nav-item svg {
+  width: 20px;
+  height: 20px;
+}
+
+.nav-item:hover,
+.nav-item.is-open {
+  background: #1a2030;
+  border-color: #283044;
+  color: #e6e9ef;
+}
+
+.nav-label {
+  position: absolute;
+  left: 54px;
+  top: 50%;
+  transform: translateY(-50%) translateX(-6px);
+  background: #141a28;
+  color: #e6e9ef;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+  transition: all 0.2s ease;
+}
+
+.nav-item:hover .nav-label {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+}
+
+.nav-submenu {
+  position: absolute;
+  left: 56px;
+  top: 0;
+  min-width: 160px;
+  padding: 8px;
+  border-radius: 12px;
+  background: #333333;
+  border: 1px solid #2A2A2A;
+  color: #9aa4b2;
+  font-size: 12px;
+  text-align: center;
+  z-index: 2;
+}
+
+.nav-submenu-item {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: inherit;
+  padding: 6px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.nav-submenu-item:hover {
+  background: #1a2030;
+  color: #e6e9ef;
+}
+
+.nav-submenu-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.nav-empty {
+  padding: 6px 0;
+}
+

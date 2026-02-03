@@ -1,0 +1,35 @@
+.property-modal {
+  max-width: 420px;
+}
+
+.property-subtitle {
+  display: block;
+  color: #9aa4b2;
+}
+
+.property-textarea {
+  min-height: 140px;
+  resize: vertical;
+}
+
+.property-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #cbd2dd;
+}
+
+.property-check-group {
+  display: grid;
+  gap: 10px;
+}
+
+.property-check-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #cbd2dd;
+}
+

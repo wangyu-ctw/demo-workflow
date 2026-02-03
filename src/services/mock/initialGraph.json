@@ -1,0 +1,87 @@
+{
+  "nodes": [
+    {
+      "id": "0a1b2c3d-1111-4aaa-8bbb-000000000001",
+      "nodeId": 1,
+      "executionId": "exec/number",
+      "title": "Number",
+      "pos": [80, 120],
+      "outputs": [{ "name": "value", "type": "number" }],
+      "properties": { "value": 3 }
+    },
+    {
+      "id": "0a1b2c3d-2222-4bbb-8ccc-000000000002",
+      "nodeId": 2,
+      "executionId": "exec/number",
+      "title": "Number",
+      "pos": [80, 260],
+      "outputs": [{ "name": "value", "type": "number" }],
+      "properties": { "value": 7 }
+    },
+    {
+      "id": "0a1b2c3d-3333-4ccc-8ddd-000000000003",
+      "nodeId": 3,
+      "executionId": "exec/add",
+      "title": "Add",
+      "pos": [360, 180],
+      "inputs": [
+        { "name": "a", "type": "number" },
+        { "name": "b", "type": "number" }
+      ],
+      "outputs": [{ "name": "sum", "type": "number" }]
+    },
+    {
+      "id": "0a1b2c3d-4444-4ddd-8eee-000000000004",
+      "nodeId": 4,
+      "executionId": "exec/multiply",
+      "title": "Multiply",
+      "pos": [620, 180],
+      "inputs": [
+        { "name": "a", "type": "number" },
+        { "name": "b", "type": "number" }
+      ],
+      "outputs": [{ "name": "product", "type": "number" }]
+    },
+    {
+      "id": "0a1b2c3d-5555-4eee-8fff-000000000005",
+      "nodeId": 5,
+      "executionId": "exec/print",
+      "title": "Print",
+      "pos": [880, 180],
+      "inputs": [{ "name": "value", "type": "prompt" }]
+    }
+  ],
+  "links": [
+    {
+      "fromNodeId": "0a1b2c3d-1111-4aaa-8bbb-000000000001",
+      "fromSlot": 0,
+      "toNodeId": "0a1b2c3d-3333-4ccc-8ddd-000000000003",
+      "toSlot": 0
+    },
+    {
+      "fromNodeId": "0a1b2c3d-2222-4bbb-8ccc-000000000002",
+      "fromSlot": 0,
+      "toNodeId": "0a1b2c3d-3333-4ccc-8ddd-000000000003",
+      "toSlot": 1
+    },
+    {
+      "fromNodeId": "0a1b2c3d-3333-4ccc-8ddd-000000000003",
+      "fromSlot": 0,
+      "toNodeId": "0a1b2c3d-4444-4ddd-8eee-000000000004",
+      "toSlot": 0
+    },
+    {
+      "fromNodeId": "0a1b2c3d-2222-4bbb-8ccc-000000000002",
+      "fromSlot": 0,
+      "toNodeId": "0a1b2c3d-4444-4ddd-8eee-000000000004",
+      "toSlot": 1
+    },
+    {
+      "fromNodeId": "0a1b2c3d-4444-4ddd-8eee-000000000004",
+      "fromSlot": 0,
+      "toNodeId": "0a1b2c3d-5555-4eee-8fff-000000000005",
+      "toSlot": 0
+    }
+  ]
+}
+
