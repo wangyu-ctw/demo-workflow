@@ -1,0 +1,50 @@
+.graph-toolbar {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 8px;
+  border: 1px solid #2a3246;
+  border-radius: 10px;
+  background: rgba(15, 19, 28, 0.92);
+  color: #e6e9ef;
+  pointer-events: auto;
+  z-index: 12;
+}
+
+.graph-toolbar-name {
+  overflow: hidden;
+  font-size: 14px;
+  color: #b6b6b6;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-right: 1px solid rgb(118 118 118);
+  padding-right: 16px;
+}
+
+.graph-toolbar-actions {
+  display: inline-flex;
+  gap: 8px;
+}
+
+.graph-toolbar-actions button {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.graph-toolbar-actions button:hover {
+  background: #1a2030;
+}
+

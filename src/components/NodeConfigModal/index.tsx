@@ -3,7 +3,12 @@ import { useEffect, useMemo, useState } from "react";
 import { FaTrashCan } from "react-icons/fa6";
 import { IoMdAddCircleOutline } from "react-icons/io";
 import type { NodeProperty, NodePort, NodeSnapshot } from "../../stores/nodeStore";
+import {
+  createNodeDefinition as createNodeDefinitionInDb,
+  updateNodeDefinition as updateNodeDefinitionInDb,
+} from "../../services/api";
 import { NodePropertyType, useNodeStore } from "../../stores/nodeStore";
+import { useExecutorStore } from "../../stores/executorStore";
 import "./style.css";
 
 type NodeConfigModalProps = {
@@ -62,6 +67,9 @@ export function NodeConfigModal({
     [nodeLibrary]
   );
 
+  const executors = useExecutorStore((state) => state.executors);
+  const defaultExecutorId = executors[0]?.id !== undefined ? String(executors[0].id) : "";
+
   const [nodeName, setNodeName] = useState("");
   const [nodeCategory, setNodeCategory] = useState(categoryOptions[0] ?? "custom");
   const shouldShowCustomCategory = !categoryOptions.includes(nodeCategory);
@@ -70,7 +78,7 @@ export function NodeConfigModal({
   const [inputs, setInputs] = useState<NodePort[]>([]);
   const [outputs, setOutputs] = useState<NodePort[]>([]);
   const [properties, setProperties] = useState<FormProperty[]>([]);
-  const [executionId, setExecutionId] = useState("exec/custom");
+  const [executionId, setExecutionId] = useState(defaultExecutorId);
 
   const resetCreateForm = () => {
     setNodeName("");
@@ -80,7 +88,7 @@ export function NodeConfigModal({
     setInputs([]);
     setOutputs([]);
     setProperties([]);
-    setExecutionId("exec/custom");
+    setExecutionId(defaultExecutorId);
   };
 
   useEffect(() => {
@@ -95,17 +103,20 @@ export function NodeConfigModal({
       setInputs(editingNode.inputs ?? []);
       setOutputs(editingNode.outputs ?? []);
       setProperties(toFormProperties(editingNode.properties));
-      setExecutionId(editingNode.executionId);
+      const executorIds = executors.map((item) => String(item.id));
+      setExecutionId(
+        executorIds.includes(editingNode.executionId) ? editingNode.executionId : defaultExecutorId
+      );
       return;
     }
     resetCreateForm();
-  }, [isOpen, editingNode, categoryOptions.length]);
+  }, [isOpen, editingNode, categoryOptions.length, executors.length, defaultExecutorId]);
 
   if (!isOpen) {
     return null;
   }
 
-  const handleCreateNodeSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleCreateNodeSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const normalizedProperties: NodeProperty<unknown>[] = properties.map((prop) => {
       let defaultValue: unknown = prop.default;
@@ -149,12 +160,14 @@ export function NodeConfigModal({
     };
 
     if (editingNodeId) {
-      const updated = updateNodeDefinition(editingNodeId, payload);
+      const updated = await updateNodeDefinitionInDb(editingNodeId, payload);
       if (updated) {
+        updateNodeDefinition(editingNodeId, payload);
         onSave?.(updated);
       }
     } else {
-      const created = addNodeDefinition(payload);
+      const created = await createNodeDefinitionInDb(payload);
+      addNodeDefinition(created);
       onSave?.(created);
     }
 
@@ -162,8 +175,8 @@ export function NodeConfigModal({
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card" onClick={(event) => event.stopPropagation()}>
+    <div className="modal-overlay">
+      <div className="modal-card">
         <div className="modal-header">
           <h3>{editingNodeId ? "编辑节点" : "新增节点"}</h3>
           <button type="button" className="modal-close" onClick={onClose}>
@@ -214,49 +227,182 @@ export function NodeConfigModal({
             {inputs.length === 0 ? (
               <div className="form-empty">暂无输入</div>
             ) : (
-              inputs.map((input, index) => (
-                <div className="form-row form-row-with-action" key={`input-${index}`}>
-                  <input
-                    placeholder="名称"
-                    value={input.name}
-                    onChange={(e) =>
-                      setInputs((prev) =>
-                        prev.map((item, idx) =>
-                          idx === index ? { ...item, name: e.target.value } : item
-                        )
-                      )
-                    }
-                  />
-                  <select
-                    value={input.type}
-                    onChange={(e) =>
-                      setInputs((prev) =>
-                        prev.map((item, idx) =>
-                          idx === index
-                            ? { ...item, type: e.target.value as NodePort["type"] }
-                            : item
-                        )
-                      )
-                    }
-                  >
-                    <option value="image">image</option>
-                    <option value="prompt">prompt</option>
-                    <option value="number">number</option>
-                  </select>
-                  <button
-                    type="button"
-                    className="mini-button ghost mini-icon-button"
-                    onClick={() => setInputs((prev) => prev.filter((_, idx) => idx !== index))}
-                  >
-                    <FaTrashCan aria-hidden="true" />
-                  </button>
-                </div>
-              ))
+              inputs.map((input, index) => {
+                const shouldShowOptions = ["array", "object"].includes(input.type);
+                return (
+                  <div className="form-card" key={`input-${index}`}>
+                    <div className="form-row form-row-with-action">
+                      <div className="form-field compact">
+                        <span>名称</span>
+                        <input
+                          value={input.name}
+                          onChange={(e) =>
+                            setInputs((prev) =>
+                              prev.map((item, idx) =>
+                                idx === index ? { ...item, name: e.target.value } : item
+                              )
+                            )
+                          }
+                        />
+                      </div>
+                      <div className="form-field compact">
+                        <span>类型</span>
+                        <select
+                          value={input.type}
+                          onChange={(e) =>
+                            setInputs((prev) =>
+                              prev.map((item, idx) =>
+                                idx === index
+                                  ? { ...item, type: e.target.value as NodePort["type"] }
+                                  : item
+                              )
+                            )
+                          }
+                        >
+                          <option value="image">image</option>
+                          <option value="prompt">prompt</option>
+                          <option value="number">number</option>
+                          <option value="string">string</option>
+                          <option value="boolean">boolean</option>
+                          <option value="select">select</option>
+                          <option value="checkbox">checkbox</option>
+                        </select>
+                      </div>
+                      <div className="require-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(input.required)}
+                          onChange={(e) =>
+                            setInputs((prev) =>
+                              prev.map((item, idx) =>
+                                idx === index ? { ...item, required: e.target.checked } : item
+                              )
+                            )
+                          }
+                        />
+                        <span>必填</span>
+                      </div>
+                      <button
+                        type="button"
+                        className="mini-button ghost mini-icon-button"
+                        onClick={() => setInputs((prev) => prev.filter((_, idx) => idx !== index))}
+                      >
+                        <FaTrashCan aria-hidden="true" />
+                      </button>
+                    </div>
+                    {shouldShowOptions ? (
+                      <div className="form-section compact">
+                        <header>
+                          <span>选项</span>
+                        </header>
+                        {(input.options ?? []).length === 0 ? (
+                          <div className="form-empty">暂无选项</div>
+                        ) : (
+                          (input.options ?? []).map((option, optionIndex) => (
+                            <div
+                              className="form-row form-row-with-action"
+                              key={`input-option-${index}-${optionIndex}`}
+                            >
+                              <div className="form-field compact">
+                                <span>标签</span>
+                                <input
+                                  value={option.label}
+                                  onChange={(e) =>
+                                    setInputs((prev) =>
+                                      prev.map((item, idx) =>
+                                        idx === index
+                                          ? {
+                                              ...item,
+                                              options: (item.options ?? []).map((opt, optIdx) =>
+                                                optIdx === optionIndex
+                                                  ? { ...opt, label: e.target.value }
+                                                  : opt
+                                              ),
+                                            }
+                                          : item
+                                      )
+                                    )
+                                  }
+                                />
+                              </div>
+                              <div className="form-field compact">
+                                <span>值</span>
+                                <input
+                                  value={option.value}
+                                  onChange={(e) =>
+                                    setInputs((prev) =>
+                                      prev.map((item, idx) =>
+                                        idx === index
+                                          ? {
+                                              ...item,
+                                              options: (item.options ?? []).map((opt, optIdx) =>
+                                                optIdx === optionIndex
+                                                  ? { ...opt, value: e.target.value }
+                                                  : opt
+                                              ),
+                                            }
+                                          : item
+                                      )
+                                    )
+                                  }
+                                />
+                              </div>
+                              <button
+                                type="button"
+                                className="mini-button ghost mini-icon-button option-delete-button"
+                                onClick={() =>
+                                  setInputs((prev) =>
+                                    prev.map((item, idx) =>
+                                      idx === index
+                                        ? {
+                                            ...item,
+                                            options: (item.options ?? []).filter(
+                                              (_opt, optIdx) => optIdx !== optionIndex
+                                            ),
+                                          }
+                                        : item
+                                    )
+                                  )
+                                }
+                              >
+                                <FaTrashCan aria-hidden="true" />
+                              </button>
+                            </div>
+                          ))
+                        )}
+                        <button
+                          type="button"
+                          className="mini-button with-icon"
+                          onClick={() =>
+                            setInputs((prev) =>
+                              prev.map((item, idx) =>
+                                idx === index
+                                  ? {
+                                      ...item,
+                                      options: [...(item.options ?? []), { label: "", value: "" }],
+                                    }
+                                  : item
+                              )
+                            )
+                          }
+                        >
+                          <p>
+                            <IoMdAddCircleOutline aria-hidden="true" />
+                            添加选项
+                          </p>
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })
             )}
             <button
               type="button"
               className="mini-button with-icon"
-              onClick={() => setInputs((prev) => [...prev, { name: "", type: "prompt" }])}
+              onClick={() =>
+                setInputs((prev) => [...prev, { name: "", type: "prompt", required: false }])
+              }
             >
               <p>
                 <IoMdAddCircleOutline aria-hidden="true" />
@@ -274,33 +420,38 @@ export function NodeConfigModal({
             ) : (
               outputs.map((output, index) => (
                 <div className="form-row form-row-with-action" key={`output-${index}`}>
-                  <input
-                    placeholder="名称"
-                    value={output.name}
-                    onChange={(e) =>
-                      setOutputs((prev) =>
-                        prev.map((item, idx) =>
-                          idx === index ? { ...item, name: e.target.value } : item
+                  <div className="form-field compact">
+                    <span>名称</span>
+                    <input
+                      value={output.name}
+                      onChange={(e) =>
+                        setOutputs((prev) =>
+                          prev.map((item, idx) =>
+                            idx === index ? { ...item, name: e.target.value } : item
+                          )
                         )
-                      )
-                    }
-                  />
-                  <select
-                    value={output.type}
-                    onChange={(e) =>
-                      setOutputs((prev) =>
-                        prev.map((item, idx) =>
-                          idx === index
-                            ? { ...item, type: e.target.value as NodePort["type"] }
-                            : item
+                      }
+                    />
+                  </div>
+                  <div className="form-field compact">
+                    <span>类型</span>
+                    <select
+                      value={output.type}
+                      onChange={(e) =>
+                        setOutputs((prev) =>
+                          prev.map((item, idx) =>
+                            idx === index
+                              ? { ...item, type: e.target.value as NodePort["type"] }
+                              : item
+                          )
                         )
-                      )
-                    }
-                  >
-                    <option value="image">image</option>
-                    <option value="prompt">prompt</option>
-                    <option value="number">number</option>
-                  </select>
+                      }
+                    >
+                      <option value="image">image</option>
+                      <option value="prompt">prompt</option>
+                      <option value="number">number</option>
+                    </select>
+                  </div>
                   <button
                     type="button"
                     className="mini-button ghost mini-icon-button"
@@ -333,114 +484,132 @@ export function NodeConfigModal({
               properties.map((prop, index) => (
                 <div className="form-card" key={`prop-${index}`}>
                   <div className="form-row">
-                    <input
-                      placeholder="标签"
-                      value={prop.label}
-                      onChange={(e) =>
-                        setProperties((prev) =>
-                          prev.map((item, idx) =>
-                            idx === index ? { ...item, label: e.target.value } : item
-                          )
-                        )
-                      }
-                    />
-                    <input
-                      placeholder="名称"
-                      value={prop.name}
-                      onChange={(e) =>
-                        setProperties((prev) =>
-                          prev.map((item, idx) =>
-                            idx === index ? { ...item, name: e.target.value } : item
-                          )
-                        )
-                      }
-                    />
-                    <select
-                      value={prop.type}
-                      onChange={(e) =>
-                        setProperties((prev) =>
-                          prev.map((item, idx) =>
-                            idx === index
-                              ? { ...item, type: e.target.value as NodePropertyType }
-                              : item
-                          )
-                        )
-                      }
-                    >
-                      <option value={NodePropertyType.textarea}>textarea</option>
-                      <option value={NodePropertyType.inputNumber}>inputNumber</option>
-                      <option value={NodePropertyType.checkGroup}>checkGroup</option>
-                      <option value={NodePropertyType.select}>select</option>
-                      <option value={NodePropertyType.switch}>switch</option>
-                    </select>
-                  </div>
-                  <div className="form-row">
-                    {prop.type === NodePropertyType.switch ? (
-                      <select
-                        value={prop.default}
-                        onChange={(e) =>
-                          setProperties((prev) =>
-                            prev.map((item, idx) =>
-                              idx === index ? { ...item, default: e.target.value } : item
-                            )
-                          )
-                        }
-                      >
-                        <option value="true">true</option>
-                        <option value="false">false</option>
-                      </select>
-                    ) : (
+                    <div className="form-field compact">
+                      <span>标签</span>
                       <input
-                        placeholder={
-                          prop.type === NodePropertyType.checkGroup ? "默认值（逗号分隔）" : "默认值"
-                        }
-                        type={prop.type === NodePropertyType.inputNumber ? "number" : "text"}
-                        value={String(prop.default ?? "")}
+                        value={prop.label}
                         onChange={(e) =>
                           setProperties((prev) =>
                             prev.map((item, idx) =>
-                              idx === index ? { ...item, default: e.target.value } : item
+                              idx === index ? { ...item, label: e.target.value } : item
                             )
                           )
                         }
                       />
+                    </div>
+                    <div className="form-field compact">
+                      <span>名称</span>
+                      <input
+                        value={prop.name}
+                        onChange={(e) =>
+                          setProperties((prev) =>
+                            prev.map((item, idx) =>
+                              idx === index ? { ...item, name: e.target.value } : item
+                            )
+                          )
+                        }
+                      />
+                    </div>
+                    <div className="form-field compact">
+                      <span>类型</span>
+                      <select
+                        value={prop.type}
+                        onChange={(e) =>
+                          setProperties((prev) =>
+                            prev.map((item, idx) =>
+                              idx === index
+                                ? { ...item, type: e.target.value as NodePropertyType }
+                                : item
+                            )
+                          )
+                        }
+                      >
+                        <option value={NodePropertyType.textarea}>textarea</option>
+                        <option value={NodePropertyType.inputNumber}>inputNumber</option>
+                        <option value={NodePropertyType.checkGroup}>checkGroup</option>
+                        <option value={NodePropertyType.select}>select</option>
+                        <option value={NodePropertyType.switch}>switch</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="form-row">
+                    {prop.type === NodePropertyType.switch ? (
+                      <div className="form-field compact">
+                        <span>默认值</span>
+                        <select
+                          value={prop.default}
+                          onChange={(e) =>
+                            setProperties((prev) =>
+                              prev.map((item, idx) =>
+                                idx === index ? { ...item, default: e.target.value } : item
+                              )
+                            )
+                          }
+                        >
+                          <option value="true">true</option>
+                          <option value="false">false</option>
+                        </select>
+                      </div>
+                    ) : (
+                      <div className="form-field compact">
+                        <span>
+                          {prop.type === NodePropertyType.checkGroup
+                            ? "默认值（逗号分隔）"
+                            : "默认值"}
+                        </span>
+                        <input
+                          type={prop.type === NodePropertyType.inputNumber ? "number" : "text"}
+                          value={String(prop.default ?? "")}
+                          onChange={(e) =>
+                            setProperties((prev) =>
+                              prev.map((item, idx) =>
+                                idx === index ? { ...item, default: e.target.value } : item
+                              )
+                            )
+                          }
+                        />
+                      </div>
                     )}
                     {prop.type === NodePropertyType.inputNumber ? (
                       <>
-                        <input
-                          placeholder="最小值"
-                          type="number"
-                          value={prop.min ?? ""}
-                          onChange={(e) =>
-                            setProperties((prev) =>
-                              prev.map((item, idx) =>
-                                idx === index
-                                  ? {
-                                      ...item,
-                                      min: e.target.value ? Number(e.target.value) : undefined,
-                                    }
-                                  : item
+                        <div className="form-field compact">
+                          <span>最小值</span>
+                          <input
+                            type="number"
+                            value={prop.min ?? ""}
+                            onChange={(e) =>
+                              setProperties((prev) =>
+                                prev.map((item, idx) =>
+                                  idx === index
+                                    ? {
+                                        ...item,
+                                        min: e.target.value ? Number(e.target.value) : undefined,
+                                      }
+                                    : item
+                                )
                               )
-                            )
-                          }
-                        />
-                        <input
-                          placeholder="最大值"
-                          type="number"
-                          value={prop.max ?? ""}
-                          onChange={(e) =>
-                            setProperties((prev) =>
-                              prev.map((item, idx) =>
-                                idx === index
-                                  ? {
-                                      ...item,
-                                      max: e.target.value ? Number(e.target.value) : undefined,
-                                    }
-                                  : item
+                            }
+                          />
+                        </div>
+                        <div className="form-field compact">
+                          <span>最大值</span>
+                          <input
+                            type="number"
+                            value={prop.max ?? ""}
+                            onChange={(e) =>
+                              setProperties((prev) =>
+                                prev.map((item, idx) =>
+                                  idx === index
+                                    ? {
+                                        ...item,
+                                        max: e.target.value ? Number(e.target.value) : undefined,
+                                      }
+                                    : item
+                                )
                               )
-                            )
-                          }
-                        />
+                            }
+                          />
+                        </div>
                       </>
                     ) : null}
                   </div>
@@ -458,46 +627,50 @@ export function NodeConfigModal({
                             className="form-row form-row-with-action"
                             key={`prop-option-${index}-${optionIndex}`}
                           >
-                            <input
-                              placeholder="名称"
-                              value={option.name}
-                              onChange={(e) =>
-                                setProperties((prev) =>
-                                  prev.map((item, idx) =>
-                                    idx === index
-                                      ? {
-                                          ...item,
-                                          options: (item.options ?? []).map((opt, optIdx) =>
-                                            optIdx === optionIndex
-                                              ? { ...opt, name: e.target.value }
-                                              : opt
-                                          ),
-                                        }
-                                      : item
+                            <div className="form-field compact">
+                              <span>名称</span>
+                              <input
+                                value={option.name}
+                                onChange={(e) =>
+                                  setProperties((prev) =>
+                                    prev.map((item, idx) =>
+                                      idx === index
+                                        ? {
+                                            ...item,
+                                            options: (item.options ?? []).map((opt, optIdx) =>
+                                              optIdx === optionIndex
+                                                ? { ...opt, name: e.target.value }
+                                                : opt
+                                            ),
+                                          }
+                                        : item
+                                    )
                                   )
-                                )
-                              }
-                            />
-                            <input
-                              placeholder="值"
-                              value={option.value}
-                              onChange={(e) =>
-                                setProperties((prev) =>
-                                  prev.map((item, idx) =>
-                                    idx === index
-                                      ? {
-                                          ...item,
-                                          options: (item.options ?? []).map((opt, optIdx) =>
-                                            optIdx === optionIndex
-                                              ? { ...opt, value: e.target.value }
-                                              : opt
-                                          ),
-                                        }
-                                      : item
+                                }
+                              />
+                            </div>
+                            <div className="form-field compact">
+                              <span>值</span>
+                              <input
+                                value={option.value}
+                                onChange={(e) =>
+                                  setProperties((prev) =>
+                                    prev.map((item, idx) =>
+                                      idx === index
+                                        ? {
+                                            ...item,
+                                            options: (item.options ?? []).map((opt, optIdx) =>
+                                              optIdx === optionIndex
+                                                ? { ...opt, value: e.target.value }
+                                                : opt
+                                            ),
+                                          }
+                                        : item
+                                    )
                                   )
-                                )
-                              }
-                            />
+                                }
+                              />
+                            </div>
                             <button
                               type="button"
                               className="mini-button ghost mini-icon-button option-delete-button"
@@ -582,11 +755,21 @@ export function NodeConfigModal({
 
           <label className="form-field">
             <span>执行器ID</span>
-            <input
+            <select
               value={executionId}
               onChange={(e) => setExecutionId(e.target.value)}
-              placeholder="exec/your-action"
-            />
+              disabled={executors.length === 0}
+            >
+              {executors.length === 0 ? (
+                <option value="">暂无执行器</option>
+              ) : (
+                executors.map((executor) => (
+                  <option key={executor.id} value={String(executor.id)}>
+                    {executor.name}
+                  </option>
+                ))
+              )}
+            </select>
           </label>
 
           <div className="modal-actions">

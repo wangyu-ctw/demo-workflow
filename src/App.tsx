@@ -2,10 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import { FiLoader } from "react-icons/fi";
 import { NodeConfigModal } from "./components/NodeConfigModal";
 import { PropertyEditModal } from "./components/PropertyEditModal";
+import { GraphToolbar } from "./components/GraphToolbar";
 import { Sidebar } from "./components/Sidebar";
 import { NodeToolbar } from "./components/NodeToolbar";
 import { createGraphSession } from "./litegraph/graphSession";
-import { getInitialGraph, getInitialNodes } from "./services/api";
+import { getInitialNodes } from "./services/api";
+import type { GraphConfig } from "./stores/graphStore";
 import { useGraphStore } from "./stores/graphStore";
 import type { NodeProperty } from "./stores/nodeStore";
 import { useNodeStore } from "./stores/nodeStore";
@@ -38,6 +40,51 @@ export default function App() {
   const updateNodesByDefinition = useGraphStore((state) => state.updateNodesByDefinition);
   const setNodes = useNodeStore((state) => state.setNodes);
 
+  const createSession = (canvas: HTMLCanvasElement) => {
+    graphApiRef.current?.destroy();
+    graphApiRef.current = createGraphSession(canvas, {
+      onSelectionChange: (selection) => {
+        if (!selection) {
+          setNodeToolbar(null);
+          return;
+        }
+        setNodeToolbar({
+          rect: selection.rect,
+          node: {
+            id: selection.node.id,
+            nodeId: selection.node.nodeId,
+            title: selection.node.title,
+            executionId: selection.node.executionId,
+          },
+        });
+      },
+      onPropertyClick: (payload) => {
+        setPropertyEditor({
+          nodeId: payload.node.id,
+          nodeTitle: payload.node.title ?? payload.node.executionId,
+          property: payload.property,
+          value: payload.value,
+        });
+      },
+    });
+  };
+
+  const handleImportGraph = (graph: GraphConfig, name: string) => {
+    const canvas = document.getElementById(CANVAS_ID) as HTMLCanvasElement | null;
+    if (!canvas) {
+      return;
+    }
+    setNodeToolbar(null);
+    setPropertyEditor(null);
+    setGraph(graph.nodes, graph.links, name);
+    try {
+      createSession(canvas);
+    } catch (error) {
+      console.error("[App] Failed to create session", error);
+      setGraph([], [], name);
+    }
+  };
+
   useEffect(() => {
     if (!containerRef.current) {
       return;
@@ -51,38 +98,12 @@ export default function App() {
     let isMounted = true;
     const bootstrap = async () => {
       try {
-        const [graph, nodes] = await Promise.all([getInitialGraph(), getInitialNodes()]);
+        const [nodes] = await Promise.all([getInitialNodes()]);
         if (!isMounted) {
           return;
         }
         setNodes(nodes);
-        setGraph(graph.nodes, graph.links);
-        const graphApi = createGraphSession(canvas, {
-          onSelectionChange: (selection) => {
-            if (!selection) {
-              setNodeToolbar(null);
-              return;
-            }
-            setNodeToolbar({
-              rect: selection.rect,
-              node: {
-                id: selection.node.id,
-                nodeId: selection.node.nodeId,
-                title: selection.node.title,
-                executionId: selection.node.executionId,
-              },
-            });
-          },
-          onPropertyClick: (payload) => {
-            setPropertyEditor({
-              nodeId: payload.node.id,
-              nodeTitle: payload.node.title ?? payload.node.executionId,
-              property: payload.property,
-              value: payload.value,
-            });
-          },
-        });
-        graphApiRef.current = graphApi;
+        createSession(canvas);
         setIsLoading(false);
       } catch (error) {
         console.error("[App] Failed to load initial data", error);
@@ -106,7 +127,9 @@ export default function App() {
       <Sidebar
         onAddNode={(nodeId: number) => graphApiRef.current?.addNodeAtCenter(nodeId)}
         onOpenCreateNode={() => setIsCreateNodeOpen(true)}
+        onImportGraph={handleImportGraph}
       />
+      <GraphToolbar />
       <main className="main-content">
         <canvas id={CANVAS_ID} className="graph-canvas" />
         {nodeToolbar ? (

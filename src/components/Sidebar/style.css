@@ -118,3 +118,9 @@
   padding: 6px 0;
 }
 
+.nav-divider {
+  height: 1px;
+  width: 100%;
+  background: rgb(118 118 118);
+  margin: 8px 0;
+}

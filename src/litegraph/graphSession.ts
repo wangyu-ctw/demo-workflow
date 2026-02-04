@@ -2,7 +2,7 @@ import type { LGraphNode } from "../litegraph";
 import { LGraph, LGraphCanvas, LGraphNode as BaseGraphNode } from "../litegraph";
 import type { GraphLink, GraphNodeSnapshot } from "../stores/graphStore";
 import { useGraphStore } from "../stores/graphStore";
-import type { NodeProperty } from "../stores/nodeStore";
+import type { NodeProperty, NodeSnapshot } from "../stores/nodeStore";
 import { getNodeDefaultProperties, useNodeStore } from "../stores/nodeStore";
 
 type SelectionRect = { x: number; y: number; width: number; height: number };
@@ -46,7 +46,7 @@ export const createGraphSession = (canvas: HTMLCanvasElement, options: GraphSess
     graphNode.inputs?.forEach((input) => {
       node.addInput(input.name, input.type);
     });
-    graphNode.outputs?.forEach((output) => {
+    (baseNode?.outputs ?? []).forEach((output) => {
       node.addOutput(output.name, output.type);
     });
     return node;
@@ -166,7 +166,6 @@ export const createGraphSession = (canvas: HTMLCanvasElement, options: GraphSess
       title: baseNode.title,
       size: baseNode.size,
       inputs: baseNode.inputs,
-      outputs: baseNode.outputs,
       pos: position,
       properties: defaults,
     });
@@ -188,7 +187,7 @@ export const createGraphSession = (canvas: HTMLCanvasElement, options: GraphSess
   const syncNodePorts = (
     node: LGraphNode,
     nextInputs: GraphNodeSnapshot["inputs"] = [],
-    nextOutputs: GraphNodeSnapshot["outputs"] = []
+    nextOutputs: NodeSnapshot["outputs"] = []
   ) => {
     node.inputs.forEach((input, index) => {
       const nextInput = nextInputs[index];
@@ -237,7 +236,7 @@ export const createGraphSession = (canvas: HTMLCanvasElement, options: GraphSess
       if (graphNode.size) {
         node.size = graphNode.size;
       }
-      syncNodePorts(node, graphNode.inputs ?? [], graphNode.outputs ?? []);
+      syncNodePorts(node, graphNode.inputs ?? [], baseNode?.outputs ?? []);
       node.propertyDefs = baseNode?.properties ?? [];
       if (baseNode) {
         node.properties = {

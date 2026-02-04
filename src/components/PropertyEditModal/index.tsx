@@ -42,13 +42,23 @@ export function PropertyEditModal({
     return null;
   }
 
+  const clampNumber = (value: number) => {
+    const min = property.min ?? Number.NEGATIVE_INFINITY;
+    const max = property.max ?? Number.POSITIVE_INFINITY;
+    return Math.min(Math.max(value, min), max);
+  };
+
   const handleSave = () => {
+    if (property.type === NodePropertyType.inputNumber && typeof draftValue === "number") {
+      onSave(clampNumber(draftValue));
+      return;
+    }
     onSave(draftValue);
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card property-modal" onClick={(event) => event.stopPropagation()}>
+    <div className="modal-overlay">
+      <div className="modal-card property-modal">
         <div className="modal-header">
           <div>
             <h3>{nodeTitle}</h3>
@@ -70,7 +80,20 @@ export function PropertyEditModal({
             <input
               type="number"
               value={draftValue === undefined || draftValue === null ? "" : Number(draftValue)}
-              onChange={(event) => setDraftValue(Number(event.target.value))}
+              min={property.min}
+              max={property.max}
+              onChange={(event) => {
+                const raw = event.target.value;
+                if (raw === "") {
+                  setDraftValue(undefined);
+                  return;
+                }
+                const nextValue = Number(raw);
+                if (Number.isNaN(nextValue)) {
+                  return;
+                }
+                setDraftValue(clampNumber(nextValue));
+              }}
             />
           ) : null}
           {property.type === NodePropertyType.select ? (

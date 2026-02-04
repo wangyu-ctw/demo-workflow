@@ -44,7 +44,7 @@ export class LGraph {
       toSlot,
     };
     this.links.set(linkId, link);
-    fromNode.outputs[fromSlot].links.push(linkId);
+    fromNode.outputs[fromSlot]?.links.push(linkId);
     toNode.inputs[toSlot].linkId = linkId;
     return link;
   }

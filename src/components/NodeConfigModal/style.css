@@ -58,6 +58,11 @@
   color: #9aa4b2;
 }
 
+.form-field.compact {
+  gap: 6px;
+  font-size: 11px;
+}
+
 .form-field input,
 .form-field select,
 .form-row input,
@@ -82,6 +87,11 @@
   gap: 10px;
 }
 
+.form-row-with-action .form-field {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
 .form-row-with-action input,
 .form-row-with-action select {
   flex: 1 1 0;
@@ -89,7 +99,7 @@
 }
 
 .form-section {
-  border: 1px solid #2A2A2A;
+  border: 1px solid rgb(118 118 118);
   border-radius: 12px;
   padding: 12px;
   display: flex;
@@ -118,18 +128,18 @@
 }
 
 .form-card {
-  border: 1px solid #1b2230;
+  border: 1px solid rgb(118 118 118);
   border-radius: 12px;
   padding: 12px;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  background: #101521;
 }
 
 .mini-button {
   border: 1px solid #2a3246;
-  background: #131a28;
+  background: transparent;
+  border: 1px solid rgb(118 118 118);
   color: #d4dbe6;
   padding: 6px 10px;
   border-radius: 8px;
@@ -154,10 +164,12 @@
 .mini-icon-button {
   width: 20px;
   min-width: 20px;
+  border: none;
   padding: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  align-self: flex-end;
   line-height: 1;
   flex: 0 0 auto;
   justify-self: end;
@@ -216,3 +228,7 @@
   color: #f3f6ff;
 }
 
+.require-checkbox {
+  align-self: flex-end;
+  padding-bottom: 4px;
+}

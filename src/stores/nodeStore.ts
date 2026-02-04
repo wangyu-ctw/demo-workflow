@@ -5,6 +5,8 @@ import { devtools } from "zustand/middleware";
 export type NodePort = {
   name: string;
   type: SlotType;
+  required?: boolean;
+  options?: { label: string; value: string }[];
 };
 
 export enum NodePropertyType {
@@ -46,7 +48,9 @@ type NodeStore = {
   nodes: Record<number, NodeSnapshot>;
   nextNodeId: number;
   setNodes: (nodes: NodeSnapshot[]) => void;
-  addNodeDefinition: (node: Omit<NodeSnapshot, "id">) => NodeSnapshot;
+  addNodeDefinition: (
+    node: Omit<NodeSnapshot, "id"> & Partial<Pick<NodeSnapshot, "id">>
+  ) => NodeSnapshot;
   updateNodeDefinition: (nodeId: number, node: Omit<NodeSnapshot, "id">) => NodeSnapshot | null;
 };
 
@@ -64,11 +68,11 @@ export const useNodeStore = create<NodeStore>()(
         let created: NodeSnapshot | null = null;
         set(
           (state) => {
-            const nextId = state.nextNodeId;
+            const nextId = node.id ?? state.nextNodeId;
             created = { ...node, id: nextId };
             return {
               nodes: { ...state.nodes, [nextId]: created },
-              nextNodeId: nextId + 1,
+              nextNodeId: Math.max(state.nextNodeId, nextId + 1),
             };
           },
           false,

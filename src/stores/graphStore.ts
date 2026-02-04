@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import { v4 as uuidv4 } from "uuid";
 import type { NodeSnapshot } from "./nodeStore";
-import { getNodeDefaultProperties } from "./nodeStore";
+import { getNodeDefaultProperties, useNodeStore } from "./nodeStore";
 
 export type GraphNodeSnapshot = {
   id: string;
@@ -12,7 +12,6 @@ export type GraphNodeSnapshot = {
   pos: [number, number];
   size?: [number, number];
   inputs?: { name: string; type: "image" | "prompt" | "number" }[];
-  outputs?: { name: string; type: "image" | "prompt" | "number" }[];
   properties?: Record<string, unknown>;
 };
 
@@ -23,10 +22,17 @@ export type GraphLink = {
   toSlot: number;
 };
 
-type GraphStore = {
+export type GraphConfig = {
   nodes: GraphNodeSnapshot[];
   links: GraphLink[];
-  setGraph: (nodes: GraphNodeSnapshot[], links: GraphLink[]) => void;
+  name?: string;
+};
+
+type GraphStore = {
+  name: string;
+  nodes: GraphNodeSnapshot[];
+  links: GraphLink[];
+  setGraph: (nodes: GraphNodeSnapshot[], links: GraphLink[], name?: string) => void;
   addNode: (node: Omit<GraphNodeSnapshot, "id">) => GraphNodeSnapshot;
   removeNode: (nodeId: string) => void;
   updateNodePosition: (nodeId: string, pos: [number, number]) => void;
@@ -39,9 +45,15 @@ type GraphStore = {
 export const useGraphStore = create<GraphStore>()(
   devtools(
     (set) => ({
+      name: "",
       nodes: [],
       links: [],
-      setGraph: (nodes, links) => set({ nodes, links }, false, "graph/setGraph"),
+      setGraph: (nodes, links, name) =>
+        set(
+          (state) => ({ nodes, links, name: name ?? state.name }),
+          false,
+          "graph/setGraph"
+        ),
       addNode: (node) => {
         let created: GraphNodeSnapshot | null = null;
         set(
@@ -115,19 +127,19 @@ export const useGraphStore = create<GraphStore>()(
                 title: definition.title,
                 size: definition.size,
                 inputs: definition.inputs,
-                outputs: definition.outputs,
                 properties: definition.properties ? nextProperties : undefined,
               };
             });
 
+            const nodeDefinitions = useNodeStore.getState().nodes;
             const nodePortMap = new Map<
               string,
-              { inputs: GraphNodeSnapshot["inputs"]; outputs: GraphNodeSnapshot["outputs"] }
+              { inputs: GraphNodeSnapshot["inputs"]; outputs: NodeSnapshot["outputs"] }
             >();
             nextNodes.forEach((node) => {
               nodePortMap.set(node.id, {
                 inputs: node.inputs ?? [],
-                outputs: node.outputs ?? [],
+                outputs: node.nodeId ? nodeDefinitions[node.nodeId]?.outputs ?? [] : [],
               });
             });
 
