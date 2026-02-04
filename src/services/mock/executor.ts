@@ -78,6 +78,6 @@ export const executor = async (id: number, payload: ExecutorPayload) => {
     default:
       result = payload;
   }
-  await delay(1000);
+  await delay(10000);
   return result;
 };

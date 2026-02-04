@@ -1,0 +1,32 @@
+.workflow-output-modal {
+  width: min(720px, 92vw);
+}
+
+.workflow-output-type {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: #9aa4b2;
+}
+
+.workflow-output-text {
+  white-space: pre-wrap;
+  background: #0f131c;
+  border: 1px solid #1e2533;
+  border-radius: 10px;
+  padding: 12px;
+  color: #e6e9ef;
+  font-size: 12px;
+}
+
+.workflow-output-image {
+  display: flex;
+  justify-content: center;
+}
+
+.workflow-output-image img {
+  max-width: 100%;
+  max-height: 60vh;
+  border-radius: 10px;
+  border: 1px solid #1e2533;
+}
+

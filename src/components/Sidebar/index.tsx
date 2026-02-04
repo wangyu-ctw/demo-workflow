@@ -17,9 +17,10 @@ type SidebarProps = {
   onAddNode: (nodeId: number) => void;
   onOpenCreateNode: () => void;
   onImportGraph: (graph: GraphConfig, name: string) => void;
+  disabled?: boolean;
 };
 
-export function Sidebar({ onAddNode, onOpenCreateNode, onImportGraph }: SidebarProps) {
+export function Sidebar({ onAddNode, onOpenCreateNode, onImportGraph, disabled }: SidebarProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
@@ -82,17 +83,28 @@ export function Sidebar({ onAddNode, onOpenCreateNode, onImportGraph }: SidebarP
             className={`nav-item ${isEditOpen ? "is-open" : ""}`}
             type="button"
             onClick={() => setIsEditOpen((prev) => !prev)}
+            disabled={disabled}
           >
             <FiEdit3 />
             <span className="nav-label">编辑</span>
           </button>
           {isEditOpen ? (
             <div className="nav-submenu">
-              <button className="nav-submenu-item" type="button" onClick={handleImportClick}>
+              <button
+                className="nav-submenu-item"
+                type="button"
+                onClick={handleImportClick}
+                disabled={disabled}
+              >
                 <FiArrowRightCircle className="nav-submenu-icon" />
                 导入
               </button>
-              <button className="nav-submenu-item" type="button" onClick={handleExportClick}>
+              <button
+                className="nav-submenu-item"
+                type="button"
+                onClick={handleExportClick}
+                disabled={disabled}
+              >
                 <FiDownload className="nav-submenu-icon" />
                 导出
               </button>
@@ -104,13 +116,19 @@ export function Sidebar({ onAddNode, onOpenCreateNode, onImportGraph }: SidebarP
             className={`nav-item ${isLibraryOpen ? "is-open" : ""}`}
             type="button"
             onClick={() => setIsLibraryOpen((prev) => !prev)}
+            disabled={disabled}
           >
             <FaShareNodes />
             <span className="nav-label">节点库</span>
           </button>
           {isLibraryOpen ? (
             <div className="nav-submenu">
-              <button className="nav-submenu-item" type="button" onClick={onOpenCreateNode}>
+              <button
+                className="nav-submenu-item"
+                type="button"
+                onClick={onOpenCreateNode}
+                disabled={disabled}
+              >
                 <FiPlus className="nav-submenu-icon" />
                 新增节点
               </button>
@@ -124,6 +142,7 @@ export function Sidebar({ onAddNode, onOpenCreateNode, onImportGraph }: SidebarP
                     key={node.id}
                     type="button"
                     onClick={() => onAddNode(node.id)}
+                    disabled={disabled}
                   >
                     {renderNodeLabel(node)}
                   </button>

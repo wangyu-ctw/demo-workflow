@@ -7,6 +7,7 @@ import {
   listNodeDefinitions,
   updateNodeDefinition,
 } from "../indexedDB";
+import { executor } from "../mock/executor";
 
 const delay = (ms: number) =>
   new Promise<void>((resolve) => {
@@ -22,6 +23,11 @@ export const getInitialNodes = async (): Promise<NodeSnapshot[]> => {
   await ensureInitialNodes();
   return listNodeDefinitions();
 };
+
+export const execute = async (
+  executeId: number,
+  payload: { inputFormValues: Record<string, unknown>; propertyValues: Record<string, unknown> }
+) => executor(executeId, payload);
 
 export {
   createNodeDefinition,

@@ -1,0 +1,27 @@
+.workflow-input-modal {
+  width: min(560px, 92vw);
+}
+
+.workflow-node-id {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: #9aa4b2;
+}
+
+.workflow-field-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.required-star {
+  color: #ff5a5a;
+  font-style: normal;
+}
+
+.form-error {
+  margin-top: 6px;
+  color: #ff5a5a;
+  font-size: 12px;
+}
+

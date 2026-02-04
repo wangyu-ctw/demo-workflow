@@ -1,3 +1,5 @@
+import type { WorkflowStatus } from "../types/workflow";
+
 export type SlotType = "image" | "prompt" | "number" | "string" | "boolean" | "select" | "checkbox";
 
 export interface NodeInput {
@@ -18,6 +20,7 @@ export interface LLink {
   fromSlot: number;
   toNodeId: number;
   toSlot: number;
+  status?: WorkflowStatus;
 }
 
 export type Point = [number, number];

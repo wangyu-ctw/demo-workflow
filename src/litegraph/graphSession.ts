@@ -4,6 +4,8 @@ import type { GraphLink, GraphNodeSnapshot } from "../stores/graphStore";
 import { useGraphStore } from "../stores/graphStore";
 import type { NodeProperty, NodeSnapshot } from "../stores/nodeStore";
 import { getNodeDefaultProperties, useNodeStore } from "../stores/nodeStore";
+import { useWorkflowStore } from "../stores/workflowStore";
+import type { SlotType } from "./types";
 
 type SelectionRect = { x: number; y: number; width: number; height: number };
 type GraphSessionOptions = {
@@ -11,6 +13,12 @@ type GraphSessionOptions = {
   onPropertyClick?: (payload: {
     node: GraphNodeSnapshot;
     property: NodeProperty<unknown>;
+    value: unknown;
+  }) => void;
+  onStatusDotClick?: (node: GraphNodeSnapshot) => void;
+  onOutputDotClick?: (payload: {
+    node: GraphNodeSnapshot;
+    outputType: SlotType;
     value: unknown;
   }) => void;
 };
@@ -24,6 +32,10 @@ export const createGraphSession = (canvas: HTMLCanvasElement, options: GraphSess
     useGraphStore.getState();
   const nodeInstances = new Map<string, LGraphNode>();
   const nodeIdMap = new Map<number, string>();
+  const linkKeyMap = new Map<string, number>();
+
+  const getLinkKey = (link: GraphLink) =>
+    `${link.fromNodeId}:${link.fromSlot}:${link.toNodeId}:${link.toSlot}`;
 
   const buildGraphNode = (graphNode: GraphNodeSnapshot) => {
     const node = new BaseGraphNode(graphNode.title ?? "Node");
@@ -71,7 +83,8 @@ export const createGraphSession = (canvas: HTMLCanvasElement, options: GraphSess
     if (!fromNode || !toNode) {
       return;
     }
-    graph.connect(fromNode, link.fromSlot, toNode, link.toSlot);
+    const graphLink = graph.connect(fromNode, link.fromSlot, toNode, link.toSlot);
+    linkKeyMap.set(getLinkKey(link), graphLink.id);
   });
 
   canvasView.onNodeMoved = (node) => {
@@ -123,7 +136,48 @@ export const createGraphSession = (canvas: HTMLCanvasElement, options: GraphSess
     options.onPropertyClick({ node: graphNode, property, value });
   };
 
+  canvasView.onStatusDotClick = (node) => {
+    if (!options.onStatusDotClick) {
+      return;
+    }
+    const graphNodeId = nodeIdMap.get(node.id);
+    if (!graphNodeId) {
+      return;
+    }
+    const graphNode = useGraphStore.getState().nodes.find((item) => item.id === graphNodeId);
+    if (!graphNode) {
+      return;
+    }
+    options.onStatusDotClick(graphNode);
+  };
+
+  canvasView.onOutputDotClick = (payload) => {
+    if (!options.onOutputDotClick) {
+      return;
+    }
+    const graphNodeId = nodeIdMap.get(payload.node.id);
+    if (!graphNodeId) {
+      return;
+    }
+    const graphNode = useGraphStore.getState().nodes.find((item) => item.id === graphNodeId);
+    if (!graphNode) {
+      return;
+    }
+    const output = payload.node.outputs[payload.slot];
+    if (!output) {
+      return;
+    }
+    options.onOutputDotClick({
+      node: graphNode,
+      outputType: output.type,
+      value: payload.node.outputValue,
+    });
+  };
+
   canvasView.onLinkAdded = (link) => {
+    if (useWorkflowStore.getState().workflowStatus !== "stopped") {
+      return;
+    }
     const fromNodeId = nodeIdMap.get(link.fromNodeId);
     const toNodeId = nodeIdMap.get(link.toNodeId);
     if (!fromNodeId || !toNodeId) {
@@ -135,9 +189,16 @@ export const createGraphSession = (canvas: HTMLCanvasElement, options: GraphSess
       toNodeId,
       toSlot: link.toSlot,
     });
+    linkKeyMap.set(
+      getLinkKey({ fromNodeId, fromSlot: link.fromSlot, toNodeId, toSlot: link.toSlot }),
+      link.id
+    );
   };
 
   canvasView.onLinkRemoved = (link) => {
+    if (useWorkflowStore.getState().workflowStatus !== "stopped") {
+      return;
+    }
     const fromNodeId = nodeIdMap.get(link.fromNodeId);
     const toNodeId = nodeIdMap.get(link.toNodeId);
     if (!fromNodeId || !toNodeId) {
@@ -149,11 +210,36 @@ export const createGraphSession = (canvas: HTMLCanvasElement, options: GraphSess
       toNodeId,
       toSlot: link.toSlot,
     });
+    linkKeyMap.delete(
+      getLinkKey({ fromNodeId, fromSlot: link.fromSlot, toNodeId, toSlot: link.toSlot })
+    );
   };
+
+  const unsubscribeWorkflow = useWorkflowStore.subscribe((state) => {
+    const isStopped = state.workflowStatus === "stopped";
+    canvasView.linkEditingEnabled = isStopped;
+    canvasView.nodeDraggingEnabled = isStopped;
+    nodeInstances.forEach((node, graphNodeId) => {
+      const workflowNode = state.nodes.find((item) => item.id === graphNodeId);
+      node.status = workflowNode?.status;
+      node.outputValue = workflowNode?.outputValue;
+    });
+    linkKeyMap.forEach((linkId, key) => {
+      const link = graph.getLinkById(linkId);
+      if (!link) {
+        return;
+      }
+      const workflowLink = state.links.find((item) => getLinkKey(item) === key);
+      link.status = workflowLink?.status;
+    });
+  });
 
   canvasView.start();
 
   const addNodeAtCenter = (nodeId: number) => {
+    if (useWorkflowStore.getState().workflowStatus !== "stopped") {
+      return;
+    }
     const baseNode = useNodeStore.getState().nodes[nodeId];
     if (!baseNode) {
       return;
@@ -262,6 +348,7 @@ export const createGraphSession = (canvas: HTMLCanvasElement, options: GraphSess
     removeNode: removeGraphNode,
     syncNodeDefinition,
     destroy: () => {
+      unsubscribeWorkflow();
       canvasView.destroy();
     },
   };

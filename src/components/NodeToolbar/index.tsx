@@ -6,12 +6,13 @@ type NodeToolbarProps = {
   node: { id: string; nodeId?: number; title?: string; executionId: string };
   onDelete?: () => void;
   onEdit?: () => void;
+  disabled?: boolean;
 };
 
 const TOOLBAR_HEIGHT = 40;
 const TOOLBAR_GAP = 8;
 
-export function NodeToolbar({ position, node, onDelete, onEdit }: NodeToolbarProps) {
+export function NodeToolbar({ position, node, onDelete, onEdit, disabled }: NodeToolbarProps) {
   return (
     <div
       className="node-toolbar"
@@ -21,10 +22,10 @@ export function NodeToolbar({ position, node, onDelete, onEdit }: NodeToolbarPro
       }}
     >
       <div className="node-toolbar-actions">
-        <button type="button" aria-label="编辑" onClick={onEdit}>
+        <button type="button" aria-label="编辑" onClick={onEdit} disabled={disabled}>
           <FiEdit2 />
         </button>
-        <button type="button" aria-label="删除" onClick={onDelete}>
+        <button type="button" aria-label="删除" onClick={onDelete} disabled={disabled}>
           <FiTrash2 />
         </button>
       </div>

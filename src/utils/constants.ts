@@ -1,4 +1,5 @@
 import type { SlotType } from "../litegraph/types";
+import { WorkflowStatus } from "../types/workflow";
 
 export const MACARON_COLORS = [
   "#FF9AA2",
@@ -23,4 +24,13 @@ export const SLOT_TYPE_COLORS: Record<SlotType, string> = {
 };
 
 export const getSlotColor = (type: SlotType) => SLOT_TYPE_COLORS[type];
+
+export const WORKFLOW_STATUS_COLORS: Record<WorkflowStatus, string> = {
+  [WorkflowStatus.PENDING]: "#FFF3BF",
+  [WorkflowStatus.DONE]: "#27AE60",
+  [WorkflowStatus.PROGRESSING]: "#2D9CDB",
+  [WorkflowStatus.ERROR]: "#EB5757",
+  [WorkflowStatus.PAUSED]: "#828282",
+  [WorkflowStatus.WAITING]: "#F2994A",
+};
 

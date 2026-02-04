@@ -5,12 +5,17 @@ import { PropertyEditModal } from "./components/PropertyEditModal";
 import { GraphToolbar } from "./components/GraphToolbar";
 import { Sidebar } from "./components/Sidebar";
 import { NodeToolbar } from "./components/NodeToolbar";
+import { WorkflowInputModal } from "./components/WorkflowInputModal";
+import { useWorkflowInputModal } from "./components/WorkflowInputModal/useWorkflowInputModal";
+import { WorkflowOutputModal } from "./components/WorkflowOutputModal";
 import { createGraphSession } from "./litegraph/graphSession";
 import { getInitialNodes } from "./services/api";
 import type { GraphConfig } from "./stores/graphStore";
 import { useGraphStore } from "./stores/graphStore";
 import type { NodeProperty } from "./stores/nodeStore";
 import { useNodeStore } from "./stores/nodeStore";
+import { useWorkflowStore } from "./stores/workflowStore";
+import { WorkflowStatus } from "./types/workflow";
 
 const CANVAS_ID = "graph-canvas";
 
@@ -36,9 +41,22 @@ export default function App() {
     property: NodeProperty<unknown>;
     value: unknown;
   } | null>(null);
+  const [outputPreview, setOutputPreview] = useState<{
+    nodeName: string;
+    outputType: string;
+    value: unknown;
+  } | null>(null);
   const setGraph = useGraphStore((state) => state.setGraph);
   const updateNodesByDefinition = useGraphStore((state) => state.updateNodesByDefinition);
   const setNodes = useNodeStore((state) => state.setNodes);
+  const retryNodeInput = useWorkflowStore((state) => state.retryNodeInput);
+  const setFillWorkflowInputs = useWorkflowStore((state) => state.setFillWorkflowInputs);
+  const workflowStatus = useWorkflowStore((state) => state.workflowStatus);
+  const { modalProps, fillWorkflowInputs } = useWorkflowInputModal();
+
+  useEffect(() => {
+    setFillWorkflowInputs(fillWorkflowInputs);
+  }, [fillWorkflowInputs, setFillWorkflowInputs]);
 
   const createSession = (canvas: HTMLCanvasElement) => {
     graphApiRef.current?.destroy();
@@ -65,6 +83,20 @@ export default function App() {
           property: payload.property,
           value: payload.value,
         });
+      },
+      onOutputDotClick: (payload) => {
+        setOutputPreview({
+          nodeName: payload.node.title ?? payload.node.executionId,
+          outputType: payload.outputType,
+          value: payload.value,
+        });
+      },
+      onStatusDotClick: (node) => {
+        const workflowNode = useWorkflowStore.getState().nodes.find((item) => item.id === node.id);
+        if (workflowNode?.status !== WorkflowStatus.WAITING) {
+          return;
+        }
+        retryNodeInput(node.id);
       },
     });
   };
@@ -128,14 +160,16 @@ export default function App() {
         onAddNode={(nodeId: number) => graphApiRef.current?.addNodeAtCenter(nodeId)}
         onOpenCreateNode={() => setIsCreateNodeOpen(true)}
         onImportGraph={handleImportGraph}
+        disabled={workflowStatus !== "stopped"}
       />
       <GraphToolbar />
       <main className="main-content">
         <canvas id={CANVAS_ID} className="graph-canvas" />
-        {nodeToolbar ? (
+        {nodeToolbar && workflowStatus === "stopped" ? (
           <NodeToolbar
             position={{ x: nodeToolbar.rect.x, y: nodeToolbar.rect.y }}
             node={nodeToolbar.node}
+            disabled={workflowStatus !== "stopped"}
             onDelete={() => graphApiRef.current?.removeNode(nodeToolbar.node.id)}
             onEdit={() => {
               if (!nodeToolbar.node.nodeId) {
@@ -185,6 +219,14 @@ export default function App() {
           );
           setPropertyEditor(null);
         }}
+      />
+      <WorkflowInputModal {...modalProps} />
+      <WorkflowOutputModal
+        isOpen={outputPreview !== null}
+        nodeName={outputPreview?.nodeName ?? ""}
+        outputType={outputPreview?.outputType ?? ""}
+        value={outputPreview?.value}
+        onClose={() => setOutputPreview(null)}
       />
     </div>
   );

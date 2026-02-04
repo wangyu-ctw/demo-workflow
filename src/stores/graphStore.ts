@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from "uuid";
 import type { NodeSnapshot } from "./nodeStore";
 import { getNodeDefaultProperties, useNodeStore } from "./nodeStore";
 import { SlotType } from "../litegraph/types";
+import { useWorkflowStore } from "./workflowStore";
 
 export type GraphNodeSnapshot = {
   id: string;
@@ -41,6 +42,7 @@ type GraphStore = {
   updateNodesByDefinition: (definition: NodeSnapshot) => void;
   addLink: (link: GraphLink) => void;
   removeLink: (link: GraphLink) => void;
+  onReset: () => void;
 };
 
 export const useGraphStore = create<GraphStore>()(
@@ -197,6 +199,16 @@ export const useGraphStore = create<GraphStore>()(
           false,
           "graph/removeLink"
         ),
+      onReset: () => {
+        const workflow = useWorkflowStore.getState();
+        workflow.onStop();
+        useWorkflowStore.setState({
+          nodes: [],
+          links: [],
+          pendingInputs: [],
+          workflowStatus: "stopped",
+        });
+      },
     }),
     { name: "GraphStore" }
   )

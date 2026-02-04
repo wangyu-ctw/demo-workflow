@@ -1,6 +1,7 @@
 import { NodePropertyType, type NodeProperty } from "../stores/nodeStore";
-import { getSlotColor } from "../utils/constants";
+import { getSlotColor, WORKFLOW_STATUS_COLORS } from "../utils/constants";
 import type { NodeInput, NodeOutput, Point, SlotType } from "./types";
+import { WorkflowStatus } from "../types/workflow";
 
 export class LGraphNode {
   id: number;
@@ -12,6 +13,8 @@ export class LGraphNode {
   outputs: NodeOutput[];
   properties: Record<string, unknown>;
   propertyDefs: NodeProperty<unknown>[];
+  status?: WorkflowStatus;
+  outputValue?: unknown;
   slotGap = 18;
   slotTopOffset = 44;
   slotRadius = 5;
@@ -78,6 +81,19 @@ export class LGraphNode {
     return null;
   }
 
+  getStatusDotHit(graphX: number, graphY: number) {
+    if (!this.status) {
+      return false;
+    }
+    const [x, y] = this.pos;
+    const centerX = x + 12 + 7;
+    const centerY = y + 20;
+    const radius = 7;
+    const dx = graphX - centerX;
+    const dy = graphY - centerY;
+    return dx * dx + dy * dy <= radius * radius;
+  }
+
   private getRequiredHeight() {
     const [, y] = this.pos;
     const slots = Math.max(this.inputs.length, this.outputs.length);
@@ -90,7 +106,7 @@ export class LGraphNode {
     return Math.max(this.size[1], lastRect.y + lastRect.height + 12 - y);
   }
 
-  draw(ctx: CanvasRenderingContext2D, activeAlpha = 0) {
+  draw(ctx: CanvasRenderingContext2D, activeAlpha = 0, now = performance.now()) {
     const [x, y] = this.pos;
     const requiredHeight = this.getRequiredHeight();
     if (requiredHeight !== this.size[1]) {
@@ -112,7 +128,17 @@ export class LGraphNode {
 
     ctx.fillStyle = "#e6e9ef";
     ctx.font = "14px sans-serif";
-    ctx.fillText(this.title, x + 12, y + 24);
+    const statusColor = this.status ? WORKFLOW_STATUS_COLORS[this.status] : null;
+    const titleX = statusColor ? x + 12 + 14 + 6 : x + 12;
+    if (statusColor) {
+      const blinkAlpha = this.status === WorkflowStatus.PROGRESSING ? getBlinkAlpha(now) : 1;
+      ctx.fillStyle = blinkAlpha < 1 ? toRgba(statusColor, blinkAlpha) : statusColor;
+      ctx.beginPath();
+      ctx.arc(x + 12 + 7, y + 20, 7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#e6e9ef";
+    }
+    ctx.fillText(this.title, titleX, y + 24);
 
     ctx.strokeStyle = "#2A2A2A";
     ctx.lineWidth = 1;
@@ -133,6 +159,13 @@ export class LGraphNode {
     });
     this.outputs.forEach((output, index) => {
       const [slotX, slotY] = this.getOutputSlotPos(index);
+      if (this.status === WorkflowStatus.DONE && this.outputValue !== undefined) {
+        ctx.strokeStyle = WORKFLOW_STATUS_COLORS[WorkflowStatus.DONE];
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(slotX, slotY, this.slotRadius + 5, 0, Math.PI * 2);
+        ctx.stroke();
+      }
       ctx.fillStyle = getSlotColor(output.type);
       ctx.beginPath();
       ctx.arc(slotX, slotY, this.slotRadius, 0, Math.PI * 2);
@@ -184,5 +217,21 @@ const formatPropertyValue = (
     return "-";
   }
   return String(value);
+};
+
+const toRgba = (hex: string, alpha: number) => {
+  const normalized = hex.replace("#", "");
+  if (normalized.length !== 6) {
+    return hex;
+  }
+  const r = Number.parseInt(normalized.slice(0, 2), 16);
+  const g = Number.parseInt(normalized.slice(2, 4), 16);
+  const b = Number.parseInt(normalized.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${Math.min(1, Math.max(0, alpha))})`;
+};
+
+const getBlinkAlpha = (now: number) => {
+  const wave = (Math.sin(now / 220) + 1) / 2;
+  return 0.3 + 0.7 * wave;
 };
 

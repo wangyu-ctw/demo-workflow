@@ -2,6 +2,7 @@ import { getSlotColor } from "../utils/constants";
 import type { LLink, Point, SlotType } from "./types";
 import { LGraph } from "./graph";
 import { LGraphNode } from "./node";
+import { WorkflowStatus } from "../types/workflow";
 
 export class LGraphCanvas {
   canvas: HTMLCanvasElement;
@@ -12,6 +13,8 @@ export class LGraphCanvas {
   onLinkAdded?: (link: LLink) => void;
   onLinkRemoved?: (link: LLink) => void;
   onPropertyClick?: (node: LGraphNode, propertyIndex: number) => void;
+  onStatusDotClick?: (node: LGraphNode) => void;
+  onOutputDotClick?: (payload: { node: LGraphNode; slot: number }) => void;
   onSelectionChange?: (
     selection:
       | { node: LGraphNode; rect: { x: number; y: number; width: number; height: number } }
@@ -40,6 +43,8 @@ export class LGraphCanvas {
     | null = null;
   private linkSnapDistance = 18;
   private didAutoCenter = false;
+  linkEditingEnabled = true;
+  nodeDraggingEnabled = true;
 
   constructor(canvas: HTMLCanvasElement, graph: LGraph) {
     this.canvas = canvas;
@@ -170,28 +175,47 @@ export class LGraphCanvas {
     const [graphX, graphY] = this.toGraphSpace(canvasX, canvasY);
     this.lastMouse = [canvasX, canvasY];
 
-    const inputSlot = this.getInputSlotAt(graphX, graphY);
-    if (inputSlot) {
-      const existingLinkId = inputSlot.node.inputs[inputSlot.slot]?.linkId;
-      if (existingLinkId !== undefined) {
-        const existingLink = this.graph.getLinkById(existingLinkId);
-        if (existingLink) {
-          const fromNode = this.graph.getNodeById(existingLink.fromNodeId);
-          if (fromNode) {
-            this.onLinkRemoved?.(existingLink);
-            this.graph.removeLink(existingLinkId);
-            this.linkingInput = { node: inputSlot.node, slot: inputSlot.slot };
-          }
-        }
+    for (let index = this.graph.nodes.length - 1; index >= 0; index -= 1) {
+      const node = this.graph.nodes[index];
+      if (node.getStatusDotHit(graphX, graphY)) {
+        this.onStatusDotClick?.(node);
+        return;
       }
-      this.linkingInput = { node: inputSlot.node, slot: inputSlot.slot };
-      return;
     }
 
     const outputSlot = this.getOutputSlotAt(graphX, graphY);
-    if (outputSlot) {
-      this.linkingOutput = outputSlot;
+    if (
+      outputSlot &&
+      outputSlot.node.status === WorkflowStatus.DONE &&
+      outputSlot.node.outputValue !== undefined
+    ) {
+      this.onOutputDotClick?.(outputSlot);
       return;
+    }
+
+    if (this.linkEditingEnabled) {
+      const inputSlot = this.getInputSlotAt(graphX, graphY);
+      if (inputSlot) {
+        const existingLinkId = inputSlot.node.inputs[inputSlot.slot]?.linkId;
+        if (existingLinkId !== undefined) {
+          const existingLink = this.graph.getLinkById(existingLinkId);
+          if (existingLink) {
+            const fromNode = this.graph.getNodeById(existingLink.fromNodeId);
+            if (fromNode) {
+              this.onLinkRemoved?.(existingLink);
+              this.graph.removeLink(existingLinkId);
+              this.linkingInput = { node: inputSlot.node, slot: inputSlot.slot };
+            }
+          }
+        }
+        this.linkingInput = { node: inputSlot.node, slot: inputSlot.slot };
+        return;
+      }
+
+      if (outputSlot) {
+        this.linkingOutput = outputSlot;
+        return;
+      }
     }
 
     const propertyHit = this.getPropertyAt(graphX, graphY);
@@ -204,7 +228,11 @@ export class LGraphCanvas {
     const node = this.getNodeAt(graphX, graphY);
     if (node) {
       this.setSelectedNode(node);
+      this.draggingCanvas = false;
       if (event.button === 2) {
+        return;
+      }
+      if (!this.nodeDraggingEnabled) {
         return;
       }
       this.draggingNode = node;
@@ -219,6 +247,10 @@ export class LGraphCanvas {
     }
 
     this.setSelectedNode(null);
+    if (!this.nodeDraggingEnabled && !this.linkEditingEnabled) {
+      this.draggingCanvas = false;
+      return;
+    }
     this.draggingCanvas = true;
   };
 
@@ -230,6 +262,10 @@ export class LGraphCanvas {
     this.lastMouse = [canvasX, canvasY];
 
     if (this.draggingNode) {
+      if (!this.nodeDraggingEnabled) {
+        this.draggingNode = null;
+        return;
+      }
       this.draggingNode.pos = [graphX - this.draggingOffset[0], graphY - this.draggingOffset[1]];
       return;
     }
@@ -261,6 +297,10 @@ export class LGraphCanvas {
     }
 
     if (this.draggingCanvas) {
+      if (!this.nodeDraggingEnabled && !this.linkEditingEnabled) {
+        this.draggingCanvas = false;
+        return;
+      }
       this.offset = [this.offset[0] + dx, this.offset[1] + dy];
     }
   };
@@ -269,6 +309,18 @@ export class LGraphCanvas {
     if (event.button === 1 || event.button === 2) {
       this.draggingCanvas = false;
       return;
+    }
+    if (!this.linkEditingEnabled) {
+      this.linkingOutput = null;
+      this.linkingInput = null;
+      this.hoveredInput = null;
+      this.hoveredOutput = null;
+      this.draggingNode = null;
+      this.draggingCanvas = false;
+      return;
+    }
+    if (!this.nodeDraggingEnabled) {
+      this.draggingNode = null;
     }
 
     if (this.linkingOutput) {

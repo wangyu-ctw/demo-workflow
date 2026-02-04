@@ -1,4 +1,5 @@
-import { getSlotColor } from "../utils/constants";
+import { getSlotColor, WORKFLOW_STATUS_COLORS } from "../utils/constants";
+import { WorkflowStatus } from "../types/workflow";
 import type { LLink, SlotType } from "./types";
 import { LGraphNode } from "./node";
 
@@ -105,8 +106,13 @@ export class LGraph {
 
       const slotType = (fromNode.outputs[link.fromSlot]?.type ?? "number") as SlotType;
       const baseColor = getSlotColor(slotType);
+      const statusColor = link.status ? WORKFLOW_STATUS_COLORS[link.status] : null;
+      const strokeColor = statusColor ?? baseColor;
       const activeAlpha = this.getExecutionAlpha(this.linkExecutionTime, link.id, now);
-      ctx.strokeStyle = activeAlpha > 0 ? toRgba(baseColor, activeAlpha) : baseColor;
+      const baseAlpha = activeAlpha > 0 ? activeAlpha : 1;
+      const blinkAlpha = link.status === WorkflowStatus.PROGRESSING ? getBlinkAlpha(now) : 1;
+      const mergedAlpha = Math.min(1, baseAlpha * blinkAlpha);
+      ctx.strokeStyle = mergedAlpha < 1 ? toRgba(strokeColor, mergedAlpha) : strokeColor;
       ctx.lineWidth = activeAlpha > 0 ? 3 : 2;
       ctx.beginPath();
       ctx.moveTo(startX, startY);
@@ -138,5 +144,10 @@ const toRgba = (hex: string, alpha: number) => {
   const g = Number.parseInt(normalized.slice(2, 4), 16);
   const b = Number.parseInt(normalized.slice(4, 6), 16);
   return `rgba(${r}, ${g}, ${b}, ${Math.min(1, Math.max(0, alpha))})`;
+};
+
+const getBlinkAlpha = (now: number) => {
+  const wave = (Math.sin(now / 220) + 1) / 2;
+  return 0.3 + 0.7 * wave;
 };
 
