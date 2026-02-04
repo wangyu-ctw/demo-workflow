@@ -1,4 +1,4 @@
-export type SlotType = "image" | "prompt" | "number" | "string" | "boolean" | "array" | "object";
+export type SlotType = "image" | "prompt" | "number" | "string" | "boolean" | "select" | "checkbox";
 
 export interface NodeInput {
   name: string;

@@ -3,6 +3,7 @@ import { devtools } from "zustand/middleware";
 import { v4 as uuidv4 } from "uuid";
 import type { NodeSnapshot } from "./nodeStore";
 import { getNodeDefaultProperties, useNodeStore } from "./nodeStore";
+import { SlotType } from "../litegraph/types";
 
 export type GraphNodeSnapshot = {
   id: string;
@@ -11,7 +12,7 @@ export type GraphNodeSnapshot = {
   title?: string;
   pos: [number, number];
   size?: [number, number];
-  inputs?: { name: string; type: "image" | "prompt" | "number" }[];
+  inputs?: { name: string; type: SlotType }[];
   properties?: Record<string, unknown>;
 };
 

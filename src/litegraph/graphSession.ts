@@ -165,7 +165,7 @@ export const createGraphSession = (canvas: HTMLCanvasElement, options: GraphSess
       executionId: baseNode.executionId,
       title: baseNode.title,
       size: baseNode.size,
-      inputs: baseNode.inputs,
+      inputs: baseNode.inputs ?? [],
       pos: position,
       properties: defaults,
     });

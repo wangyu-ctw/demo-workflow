@@ -16,6 +16,10 @@ export const SLOT_TYPE_COLORS: Record<SlotType, string> = {
   image: MACARON_COLORS[0],
   prompt: MACARON_COLORS[1],
   number: MACARON_COLORS[2],
+  string: MACARON_COLORS[3],
+  boolean: MACARON_COLORS[4],
+  select: MACARON_COLORS[5],
+  checkbox: MACARON_COLORS[6],
 };
 
 export const getSlotColor = (type: SlotType) => SLOT_TYPE_COLORS[type];
