@@ -98,8 +98,10 @@ export class LGraphCanvas {
       this.offset[1] * scaledRatio
     );
     this.drawGrid();
-    this.graph.draw(this.ctx, performance.now());
+    const now = performance.now();
+    this.graph.draw(this.ctx, now);
     this.drawSelection();
+    this.drawWaitingBubbles();
     this.drawLinkPreview();
     this.ctx.restore();
     this.emitSelectionChange();
@@ -672,6 +674,15 @@ export class LGraphCanvas {
       8 + padding
     );
     this.ctx.stroke();
+  }
+
+  private drawWaitingBubbles() {
+    this.graph.nodes.forEach((node) => {
+      if (node.status !== WorkflowStatus.WAITING) {
+        return;
+      }
+      node.drawWaitingBubble(this.ctx);
+    });
   }
 
   private setCursor(cursor: string) {

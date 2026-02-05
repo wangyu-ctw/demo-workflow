@@ -208,6 +208,45 @@ export class LGraphNode {
       });
     }
   }
+
+  drawWaitingBubble(ctx: CanvasRenderingContext2D) {
+    if (this.status !== WorkflowStatus.WAITING) {
+      return;
+    }
+    const [x, y] = this.pos;
+    const dotX = x + 12 + 7;
+    const dotY = y + 20;
+    const bubbleText = "点此输入";
+
+    ctx.save();
+    ctx.font = "13px sans-serif";
+    const textWidth = ctx.measureText(bubbleText).width;
+    const paddingX = 12;
+    const bubbleHeight = 28;
+    const bubbleWidth = textWidth + paddingX * 2;
+    const bubbleX = dotX - bubbleWidth / 2;
+    const bubbleY = dotY - 7 - bubbleHeight - 10;
+    ctx.fillStyle = "#333333";
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.roundRect(bubbleX, bubbleY, bubbleWidth, bubbleHeight, 8);
+    ctx.fill();
+    ctx.stroke();
+    const pointerWidth = 12;
+    const pointerHeight = 7;
+    const pointerY = bubbleY + bubbleHeight;
+    ctx.beginPath();
+    ctx.moveTo(dotX - pointerWidth / 2, pointerY);
+    ctx.lineTo(dotX, pointerY + pointerHeight);
+    ctx.lineTo(dotX + pointerWidth / 2, pointerY);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = "#e6e9ef";
+    ctx.fillText(bubbleText, bubbleX + paddingX, bubbleY + bubbleHeight / 2 + 4);
+    ctx.restore();
+  }
 }
 
 const formatPropertyValue = (

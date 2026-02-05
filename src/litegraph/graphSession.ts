@@ -57,10 +57,12 @@ export const createGraphSession = (canvas: HTMLCanvasElement, options: GraphSess
       node.size = graphNode.size;
     }
     (baseNode?.inputs ?? []).forEach((input) => {
-      node.addInput(input.name, input.type);
+      const label = input.label?.trim() || input.name;
+      node.addInput(label, input.type);
     });
     (baseNode?.outputs ?? []).forEach((output) => {
-      node.addOutput(output.name, output.type);
+      const label = output.label?.trim() || output.name;
+      node.addOutput(label, output.type);
     });
     return node;
   };
@@ -303,13 +305,13 @@ export const createGraphSession = (canvas: HTMLCanvasElement, options: GraphSess
     });
 
     node.inputs = normalizedInputs.map((input, index) => ({
-      name: input.name,
+      name: input.label?.trim() || input.name,
       type: input.type,
       linkId:
         node.inputs[index]?.type === input.type ? node.inputs[index]?.linkId : undefined,
     }));
     node.outputs = normalizedOutputs.map((output, index) => ({
-      name: output.name,
+      name: output.label?.trim() || output.name,
       type: output.type,
       links: node.outputs[index]?.type === output.type ? [...node.outputs[index].links] : [],
     }));

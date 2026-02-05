@@ -3,6 +3,7 @@ import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 
 export type NodePort = {
+  label?: string;
   name: string;
   type: SlotType;
   required?: boolean;

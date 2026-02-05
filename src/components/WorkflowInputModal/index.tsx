@@ -10,6 +10,7 @@ const getFieldFileKey = (formIndex: number, inputName: string) =>
   `${formIndex}:${inputName}:filename`;
 const getFieldDomId = (formIndex: number, inputName: string) =>
   `workflow-input-${formIndex}-${inputName}`;
+const getInputLabel = (input: InputForm[number]) => input.label?.trim() || input.name;
 
 type UploadImageProps = {
   value?: string;
@@ -101,6 +102,7 @@ export function WorkflowInputModal({
   const renderField = useCallback(
     (payload: { input: InputForm[number]; key: string; formIndex: number }) => {
       const { input, key, formIndex } = payload;
+      const label = getInputLabel(input);
       const renderError = errors[key] ? <span className="form-error">{errors[key]}</span> : null;
 
       switch (input.type) {
@@ -109,7 +111,7 @@ export function WorkflowInputModal({
           return (
             <div className="form-field" key={key}>
               <span className="workflow-field-label">
-                {input.name}
+                {label}
                 {input.required ? <em className="required-star">*</em> : null}
               </span>
               <div className="workflow-switch">
@@ -131,7 +133,7 @@ export function WorkflowInputModal({
           return (
             <div className="form-field" key={key}>
               <div className="workflow-field-label">
-                <span>{input.name}</span>
+                <span>{label}</span>
                 {input.required ? <em className="required-star">*</em> : null}
               </div>
               <UploadImage
@@ -161,7 +163,7 @@ export function WorkflowInputModal({
           return (
             <div className="form-field" key={key}>
               <label className="workflow-field-label" htmlFor={getFieldDomId(formIndex, input.name)}>
-                {input.name}
+                {label}
                 {input.required ? <em className="required-star">*</em> : null}
               </label>
               <input
@@ -169,6 +171,7 @@ export function WorkflowInputModal({
                 type="number"
                 min={(input as any).min}
                 max={(input as any).max}
+                step="any"
                 value={values[key] ?? ""}
                 onChange={(event) =>
                   setValues((prev) => ({ ...prev, [key]: event.target.value }))
@@ -181,7 +184,7 @@ export function WorkflowInputModal({
           return (
             <div className="form-field" key={key}>
               <div className="workflow-field-label">
-                <span>{input.name}</span>
+                <span>{label}</span>
                 {input.required ? <em className="required-star">*</em> : null}
               </div>
               <div className="workflow-checkbox-group">
@@ -221,7 +224,7 @@ export function WorkflowInputModal({
           return (
             <div className="form-field" key={key}>
               <label className="workflow-field-label" htmlFor={getFieldDomId(formIndex, input.name)}>
-                {input.name}
+                {label}
                 {input.required ? <em className="required-star">*</em> : null}
               </label>
               <select
@@ -245,7 +248,7 @@ export function WorkflowInputModal({
           return (
             <div className="form-field" key={key}>
               <label className="workflow-field-label" htmlFor={getFieldDomId(formIndex, input.name)}>
-                {input.name}
+                {label}
                 {input.required ? <em className="required-star">*</em> : null}
               </label>
               <input

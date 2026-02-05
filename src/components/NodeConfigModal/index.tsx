@@ -50,6 +50,12 @@ const toFormProperties = (properties: NodeProperty<unknown>[] = []): FormPropert
     min: prop.min,
   }));
 
+const normalizePort = (port: NodePort): NodePort => ({
+  ...port,
+  name: port.name ?? "",
+  label: port.label ?? port.name ?? "",
+});
+
 export function NodeConfigModal({
   isOpen,
   onClose,
@@ -100,8 +106,8 @@ export function NodeConfigModal({
       setNodeCategory(editingNode.category ?? categoryOptions[0] ?? "custom");
       setNodeWidth(editingNode.size?.[0] ?? 180);
       setNodeHeight(editingNode.size?.[1] ?? 80);
-      setInputs(editingNode.inputs ?? []);
-      setOutputs(editingNode.outputs ?? []);
+      setInputs((editingNode.inputs ?? []).map(normalizePort));
+      setOutputs((editingNode.outputs ?? []).map(normalizePort));
       setProperties(toFormProperties(editingNode.properties));
       const executorIds = executors.map((item) => String(item.id));
       setExecutionId(
@@ -149,13 +155,24 @@ export function NodeConfigModal({
       };
     });
 
+    const normalizedInputs = inputs.map((input) => ({
+      ...input,
+      label: input.label?.trim() || input.name,
+      name: input.name.trim(),
+    }));
+    const normalizedOutputs = outputs.map((output) => ({
+      ...output,
+      label: output.label?.trim() || output.name,
+      name: output.name.trim(),
+    }));
+
     const payload: Omit<NodeSnapshot, "id"> = {
       category: nodeCategory,
       executionId,
       title: nodeName.trim() || nodeCategory,
       size: [nodeWidth, nodeHeight],
-      inputs: inputs.length ? inputs : undefined,
-      outputs: outputs.length ? outputs : undefined,
+      inputs: normalizedInputs.length ? normalizedInputs : undefined,
+      outputs: normalizedOutputs.length ? normalizedOutputs : undefined,
       properties: normalizedProperties.length ? normalizedProperties : undefined,
     };
 
@@ -207,7 +224,7 @@ export function NodeConfigModal({
             </label>
           </div>
           <label className="form-field">
-            <span>类型（暂时没啥用）</span>
+            <span>目录（目前没啥用但强烈建议使用）</span>
             <select value={nodeCategory} onChange={(e) => setNodeCategory(e.target.value)}>
               {categoryOptions.map((category) => (
                 <option value={category} key={category}>
@@ -232,6 +249,19 @@ export function NodeConfigModal({
                 return (
                   <div className="form-card" key={`input-${index}`}>
                     <div className="form-row form-row-with-action">
+                      <div className="form-field compact">
+                        <span>标签</span>
+                        <input
+                          value={input.label ?? ""}
+                          onChange={(e) =>
+                            setInputs((prev) =>
+                              prev.map((item, idx) =>
+                                idx === index ? { ...item, label: e.target.value } : item
+                              )
+                            )
+                          }
+                        />
+                      </div>
                       <div className="form-field compact">
                         <span>名称</span>
                         <input
@@ -443,7 +473,10 @@ export function NodeConfigModal({
               type="button"
               className="mini-button with-icon"
               onClick={() =>
-                setInputs((prev) => [...prev, { name: "", type: "prompt", required: false }])
+                setInputs((prev) => [
+                  ...prev,
+                  { label: "", name: "", type: "prompt", required: false },
+                ])
               }
             >
               <p>
@@ -462,6 +495,19 @@ export function NodeConfigModal({
             ) : (
               outputs.map((output, index) => (
                 <div className="form-row form-row-with-action" key={`output-${index}`}>
+                  <div className="form-field compact">
+                    <span>标签</span>
+                    <input
+                      value={output.label ?? ""}
+                      onChange={(e) =>
+                        setOutputs((prev) =>
+                          prev.map((item, idx) =>
+                            idx === index ? { ...item, label: e.target.value } : item
+                          )
+                        )
+                      }
+                    />
+                  </div>
                   <div className="form-field compact">
                     <span>名称</span>
                     <input
@@ -507,7 +553,9 @@ export function NodeConfigModal({
             <button
               type="button"
               className="mini-button with-icon"
-              onClick={() => setOutputs((prev) => [...prev, { name: "", type: "prompt" }])}
+              onClick={() =>
+                setOutputs((prev) => [...prev, { label: "", name: "", type: "prompt" }])
+              }
             >
               <p>
                 <IoMdAddCircleOutline aria-hidden="true" />
