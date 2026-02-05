@@ -242,6 +242,7 @@ export class LGraphCanvas {
 
     if (event.button === 1 || event.button === 2) {
       this.draggingCanvas = true;
+      this.setCursor("grabbing");
       this.setSelectedNode(null);
       return;
     }
@@ -252,6 +253,7 @@ export class LGraphCanvas {
       return;
     }
     this.draggingCanvas = true;
+    this.setCursor("grabbing");
   };
 
   private handleMouseMove = (event: MouseEvent) => {
@@ -303,11 +305,13 @@ export class LGraphCanvas {
       }
       this.offset = [this.offset[0] + dx, this.offset[1] + dy];
     }
+    this.updateCursor(graphX, graphY);
   };
 
   private handleMouseUp = (event: MouseEvent) => {
     if (event.button === 1 || event.button === 2) {
       this.draggingCanvas = false;
+      this.updateCursor(...this.toGraphSpace(this.lastMouse[0], this.lastMouse[1]));
       return;
     }
     if (!this.linkEditingEnabled) {
@@ -317,6 +321,7 @@ export class LGraphCanvas {
       this.hoveredOutput = null;
       this.draggingNode = null;
       this.draggingCanvas = false;
+      this.updateCursor(...this.toGraphSpace(this.lastMouse[0], this.lastMouse[1]));
       return;
     }
     if (!this.nodeDraggingEnabled) {
@@ -385,6 +390,7 @@ export class LGraphCanvas {
     this.hoveredOutput = null;
     this.draggingNode = null;
     this.draggingCanvas = false;
+    this.updateCursor(...this.toGraphSpace(this.lastMouse[0], this.lastMouse[1]));
   };
 
   private handleWheel = (event: WheelEvent) => {
@@ -668,6 +674,49 @@ export class LGraphCanvas {
     this.ctx.stroke();
   }
 
+  private setCursor(cursor: string) {
+    if (this.canvas.style.cursor !== cursor) {
+      this.canvas.style.cursor = cursor;
+    }
+  }
+
+  private updateCursor(graphX: number, graphY: number) {
+    if (this.draggingCanvas) {
+      this.setCursor("grabbing");
+      return;
+    }
+
+    const waitingHit = this.graph.nodes.find(
+      (node) => node.status === WorkflowStatus.WAITING && node.getStatusDotHit(graphX, graphY)
+    );
+    if (waitingHit) {
+      this.setCursor("pointer");
+      return;
+    }
+
+    const outputSlot = this.getOutputSlotAt(graphX, graphY);
+    if (
+      outputSlot &&
+      outputSlot.node.status === WorkflowStatus.DONE &&
+      outputSlot.node.outputValue !== undefined
+    ) {
+      this.setCursor("pointer");
+      return;
+    }
+
+    if (this.getNodeAt(graphX, graphY)) {
+      this.setCursor("crosshair");
+      return;
+    }
+
+    if (this.getLinkAt(graphX, graphY)) {
+      this.setCursor("crosshair");
+      return;
+    }
+
+    this.setCursor("default");
+  }
+
   private getSelectionRect(node: LGraphNode) {
     const [x, y] = node.pos;
     const [w, h] = node.size;
@@ -714,6 +763,41 @@ export class LGraphCanvas {
     }
     this.selectedNode = node;
     this.emitSelectionChange();
+  }
+
+  private getLinkAt(graphX: number, graphY: number) {
+    const threshold = 6;
+    for (const link of this.graph.links.values()) {
+      const fromNode = this.graph.getNodeById(link.fromNodeId);
+      const toNode = this.graph.getNodeById(link.toNodeId);
+      if (!fromNode || !toNode) {
+        continue;
+      }
+      const [startX, startY] = fromNode.getOutputSlotPos(link.fromSlot);
+      const [endX, endY] = toNode.getInputSlotPos(link.toSlot);
+      const cp1X = startX + 60;
+      const cp1Y = startY;
+      const cp2X = endX - 60;
+      const cp2Y = endY;
+      for (let t = 0; t <= 1; t += 0.05) {
+        const x =
+          Math.pow(1 - t, 3) * startX +
+          3 * Math.pow(1 - t, 2) * t * cp1X +
+          3 * (1 - t) * Math.pow(t, 2) * cp2X +
+          Math.pow(t, 3) * endX;
+        const y =
+          Math.pow(1 - t, 3) * startY +
+          3 * Math.pow(1 - t, 2) * t * cp1Y +
+          3 * (1 - t) * Math.pow(t, 2) * cp2Y +
+          Math.pow(t, 3) * endY;
+        const dx = graphX - x;
+        const dy = graphY - y;
+        if (Math.hypot(dx, dy) <= threshold) {
+          return link;
+        }
+      }
+    }
+    return null;
   }
 }
 

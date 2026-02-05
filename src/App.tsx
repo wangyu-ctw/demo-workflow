@@ -49,6 +49,7 @@ export default function App() {
   } | null>(null);
   const setGraph = useGraphStore((state) => state.setGraph);
   const updateNodesByDefinition = useGraphStore((state) => state.updateNodesByDefinition);
+  const editing = useGraphStore((state) => state.editing);
   const setNodes = useNodeStore((state) => state.setNodes);
   const retryNodeInput = useWorkflowStore((state) => state.retryNodeInput);
   const setFillWorkflowInputs = useWorkflowStore((state) => state.setFillWorkflowInputs);
@@ -161,17 +162,17 @@ export default function App() {
         onAddNode={(nodeId: number) => graphApiRef.current?.addNodeAtCenter(nodeId)}
         onOpenCreateNode={() => setIsCreateNodeOpen(true)}
         onImportGraph={handleImportGraph}
-        disabled={workflowStatus !== "stopped"}
+        disabled={!editing}
       />
       <GraphToolbar />
       <main className="main-content">
         <canvas id={CANVAS_ID} className="graph-canvas" />
-        {workflowStatus !== "stopped" ? <WorkflowStatusLegend /> : null}
-        {nodeToolbar && workflowStatus === "stopped" ? (
+        {!editing ? <WorkflowStatusLegend /> : null}
+        {nodeToolbar && editing ? (
           <NodeToolbar
             position={{ x: nodeToolbar.rect.x, y: nodeToolbar.rect.y }}
             node={nodeToolbar.node}
-            disabled={workflowStatus !== "stopped"}
+            disabled={!editing}
             onDelete={() => graphApiRef.current?.removeNode(nodeToolbar.node.id)}
             onEdit={() => {
               if (!nodeToolbar.node.nodeId) {

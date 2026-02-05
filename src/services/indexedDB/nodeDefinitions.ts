@@ -4,6 +4,13 @@ import { NODE_STORE, openDatabase, requestToPromise, transactionDone } from "./d
 
 const INITIAL_NODES_FLAG = "artifex.initialNodesSeeded";
 
+type InitialNodesPayload = {
+  version: string;
+  data: NodeSnapshot[];
+};
+
+const initialNodesPayload = initialNodes as InitialNodesPayload;
+
 const withStore = async <T>(
   mode: IDBTransactionMode,
   runner: (store: IDBObjectStore) => Promise<T>
@@ -20,15 +27,17 @@ const withStore = async <T>(
 export const ensureInitialNodes = async () =>
   withStore("readwrite", async (store) => {
     const count = await requestToPromise(store.count());
-    if (count > 0) {
-      window.localStorage.setItem(INITIAL_NODES_FLAG, "true");
+    const storedVersion = window.localStorage.getItem(INITIAL_NODES_FLAG);
+    const needsSeed = storedVersion !== initialNodesPayload.version || count === 0;
+    if (!needsSeed) {
       return;
     }
     console.log("seeding initial nodes");
-    (initialNodes as NodeSnapshot[]).forEach((node) => {
+    await requestToPromise(store.clear());
+    initialNodesPayload.data.forEach((node) => {
       store.add(node);
     });
-    window.localStorage.setItem(INITIAL_NODES_FLAG, "true");
+    window.localStorage.setItem(INITIAL_NODES_FLAG, initialNodesPayload.version);
   });
 
 export const listNodeDefinitions = async () =>
@@ -71,4 +80,31 @@ export const deleteNodeDefinition = async (nodeId: number) =>
   withStore("readwrite", async (store) => {
     await requestToPromise(store.delete(nodeId));
   });
+
+export const exportNodeDefinitionsAsJson = async (
+  name = "initialNodes",
+  versionOverride?: string
+) => {
+  const nodes = await listNodeDefinitions();
+  const version =
+    versionOverride ??
+    window.localStorage.getItem(INITIAL_NODES_FLAG) ??
+    initialNodesPayload.version;
+  const payload = JSON.stringify(
+    {
+      version,
+      data: [...nodes].sort((a, b) => a.id - b.id),
+    },
+    null,
+    2
+  );
+  const blob = new Blob([payload], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = `${name}.json`;
+  anchor.click();
+  URL.revokeObjectURL(url);
+  return payload;
+};
 

@@ -1,52 +1,163 @@
-[
-  {
-    "id": 1,
+{
+  "version": "1770265070000",
+  "data": [
+    {
     "category": "basic",
-    "executionId": "exec/number",
-    "title": "Number",
-    "outputs": [{ "name": "value", "type": "number" }],
+    "executionId": "2",
+    "title": "风景用enhance prompt",
+    "size": [
+      180,
+      106
+    ],
+    "inputs": [
+      {
+        "name": "prompt",
+        "type": "prompt",
+        "required": true
+      }
+    ],
+    "outputs": [
+      {
+        "name": "enhanced prompt",
+        "type": "prompt"
+      }
+    ],
     "properties": [
-      { "label": "数值", "name": "value", "type": "inputNumber", "default": 0, "min": -9999, "max": 9999 }
-    ]
-  },
-  {
-    "id": 2,
+      {
+        "label": "suffix",
+        "name": "",
+        "type": "textarea",
+        "default": "-- no people",
+        "options": []
+      }
+    ],
+    "id": 10
+    },
+    {
     "category": "basic",
-    "executionId": "exec/number",
-    "title": "Number",
-    "outputs": [{ "name": "value", "type": "number" }],
+    "executionId": "1",
+    "title": "图片resize",
+    "size": [
+      180,
+      92
+    ],
+    "inputs": [
+      {
+        "name": "image",
+        "type": "image",
+        "required": true
+      },
+      {
+        "name": "resize",
+        "type": "select",
+        "required": false,
+        "options": [
+          {
+            "label": "16:9",
+            "value": "16:9"
+          },
+          {
+            "label": "9:16",
+            "value": "16:9"
+          },
+          {
+            "label": "3:4",
+            "value": "3:4"
+          }
+        ]
+      }
+    ],
+    "outputs": [
+      {
+        "name": "图片",
+        "type": "image"
+      }
+    ],
+    "id": 11
+    },
+    {
+    "category": "basic",
+    "executionId": "1",
+    "title": "文生图",
+    "size": [
+      320,
+      124
+    ],
+    "inputs": [
+      {
+        "name": "prompt",
+        "type": "prompt",
+        "required": true
+      },
+      {
+        "name": "image reference",
+        "type": "image",
+        "required": false
+      }
+    ],
+    "outputs": [
+      {
+        "name": "图",
+        "type": "image"
+      },
+      {
+        "name": "描述",
+        "type": "prompt"
+      }
+    ],
     "properties": [
-      { "label": "数值", "name": "value", "type": "inputNumber", "default": 0, "min": -9999, "max": 9999 }
-    ]
-  },
-  {
-    "id": 3,
-    "category": "math",
-    "executionId": "exec/add",
-    "title": "Add",
-    "inputs": [
-      { "name": "a", "type": "number" },
-      { "name": "b", "type": "number" }
+      {
+        "label": "一个参数",
+        "name": "opt",
+        "type": "textarea",
+        "default": "默认参数，默认默认默认",
+        "options": []
+      }
     ],
-    "outputs": [{ "name": "sum", "type": "number" }]
-  },
-  {
-    "id": 4,
-    "category": "math",
-    "executionId": "exec/multiply",
-    "title": "Multiply",
-    "inputs": [
-      { "name": "a", "type": "number" },
-      { "name": "b", "type": "number" }
+    "id": 12
+    },
+    {
+    "category": "basic",
+    "executionId": "1",
+    "title": "图生图",
+    "size": [
+      180,
+      80
     ],
-    "outputs": [{ "name": "product", "type": "number" }]
-  },
-  {
-    "id": 5,
-    "category": "debug",
-    "executionId": "exec/print",
-    "title": "Print",
-    "inputs": [{ "name": "value", "type": "prompt" }]
-  }
-]
-
+    "inputs": [
+      {
+        "name": "image",
+        "type": "image",
+        "required": true
+      },
+      {
+        "name": "高清",
+        "type": "boolean",
+        "required": true
+      }
+    ],
+    "outputs": [
+      {
+        "name": "prompt",
+        "type": "prompt"
+      },
+      {
+        "name": "image",
+        "type": "image"
+      }
+    ],
+    "properties": [
+      {
+        "label": "某参数",
+        "name": "opt",
+        "type": "inputNumber",
+        "default": 4,
+        "options": [],
+        "max": 10,
+        "min": 1
+      }
+    ],
+    "id": 13
+    }
+  ]
+}

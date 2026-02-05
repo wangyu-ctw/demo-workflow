@@ -269,20 +269,18 @@ export function WorkflowInputModal({
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const nextValues = { ...values };
     const nextErrors: Record<string, string> = {};
     fields.forEach((form) => {
       form.forEach(({ input, key }) => {
         if (!input.required) {
           return;
         }
-        const value = values[key];
-        const isEmptyArray = Array.isArray(value) && value.length === 0;
-        if (input.type === "boolean") {
-          if (value !== true) {
-            nextErrors[key] = "必填";
-          }
-          return;
+        if (input.type === "boolean" && nextValues[key] === undefined) {
+          nextValues[key] = false;
         }
+        const value = nextValues[key];
+        const isEmptyArray = Array.isArray(value) && value.length === 0;
         if (isEmptyArray || value === undefined || value === null || String(value).trim() === "") {
           nextErrors[key] = "必填";
         }
@@ -293,7 +291,8 @@ export function WorkflowInputModal({
       return;
     }
     setErrors({});
-    onSubmit?.({ nodeId, values });
+    setValues(nextValues);
+    onSubmit?.({ nodeId, values: nextValues });
   };
 
   return (

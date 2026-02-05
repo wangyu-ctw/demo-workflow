@@ -41,6 +41,9 @@ export const createGraphSession = (canvas: HTMLCanvasElement, options: GraphSess
     const node = new BaseGraphNode(graphNode.title ?? "Node");
     node.type = graphNode.executionId;
     const baseNode = useNodeStore.getState().nodes[graphNode.nodeId];
+    if (!baseNode) {
+      return null;
+    }
     node.propertyDefs = baseNode?.properties ?? [];
     if (baseNode) {
       node.properties = {
@@ -64,6 +67,9 @@ export const createGraphSession = (canvas: HTMLCanvasElement, options: GraphSess
 
   const addGraphNode = (graphNode: GraphNodeSnapshot) => {
     const node = buildGraphNode(graphNode);
+    if (!node) {
+      return null;
+    }
     graph.add(node);
     node.pos = graphNode.pos;
     nodeInstances.set(graphNode.id, node);
@@ -173,7 +179,7 @@ export const createGraphSession = (canvas: HTMLCanvasElement, options: GraphSess
   };
 
   canvasView.onLinkAdded = (link) => {
-    if (useWorkflowStore.getState().workflowStatus !== "stopped") {
+    if (!useGraphStore.getState().editing) {
       return;
     }
     const fromNodeId = nodeIdMap.get(link.fromNodeId);
@@ -194,7 +200,7 @@ export const createGraphSession = (canvas: HTMLCanvasElement, options: GraphSess
   };
 
   canvasView.onLinkRemoved = (link) => {
-    if (useWorkflowStore.getState().workflowStatus !== "stopped") {
+    if (!useGraphStore.getState().editing) {
       return;
     }
     const fromNodeId = nodeIdMap.get(link.fromNodeId);
@@ -213,10 +219,10 @@ export const createGraphSession = (canvas: HTMLCanvasElement, options: GraphSess
     );
   };
 
+  canvasView.linkEditingEnabled = useGraphStore.getState().editing;
+  canvasView.nodeDraggingEnabled = true;
+
   const unsubscribeWorkflow = useWorkflowStore.subscribe((state) => {
-    const isStopped = state.workflowStatus === "stopped";
-    canvasView.linkEditingEnabled = isStopped;
-    canvasView.nodeDraggingEnabled = true;
     nodeInstances.forEach((node, graphNodeId) => {
       const workflowNode = state.nodes.find((item) => item.id === graphNodeId);
       node.status = workflowNode?.status;
@@ -232,10 +238,14 @@ export const createGraphSession = (canvas: HTMLCanvasElement, options: GraphSess
     });
   });
 
+  const unsubscribeGraph = useGraphStore.subscribe((state) => {
+    canvasView.linkEditingEnabled = state.editing;
+  });
+
   canvasView.start();
 
   const addNodeAtCenter = (nodeId: number) => {
-    if (useWorkflowStore.getState().workflowStatus !== "stopped") {
+    if (!useGraphStore.getState().editing) {
       return;
     }
     const baseNode = useNodeStore.getState().nodes[nodeId];
@@ -269,11 +279,13 @@ export const createGraphSession = (canvas: HTMLCanvasElement, options: GraphSess
 
   const syncNodePorts = (
     node: LGraphNode,
-    nextInputs: GraphNodeSnapshot["inputs"] = [],
+    nextInputs: NodeSnapshot["inputs"] = [],
     nextOutputs: NodeSnapshot["outputs"] = []
   ) => {
+    const normalizedInputs = (nextInputs ?? []) as NonNullable<NodeSnapshot["inputs"]>;
+    const normalizedOutputs = (nextOutputs ?? []) as NonNullable<NodeSnapshot["outputs"]>;
     node.inputs.forEach((input, index) => {
-      const nextInput = nextInputs[index];
+      const nextInput = normalizedInputs[index];
       if (!nextInput || nextInput.type !== input.type) {
         if (input.linkId !== undefined) {
           graph.removeLink(input.linkId);
@@ -282,7 +294,7 @@ export const createGraphSession = (canvas: HTMLCanvasElement, options: GraphSess
     });
 
     node.outputs.forEach((output, index) => {
-      const nextOutput = nextOutputs[index];
+      const nextOutput = normalizedOutputs[index];
       if (!nextOutput || nextOutput.type !== output.type) {
         output.links.forEach((linkId) => {
           graph.removeLink(linkId);
@@ -290,13 +302,13 @@ export const createGraphSession = (canvas: HTMLCanvasElement, options: GraphSess
       }
     });
 
-    node.inputs = nextInputs.map((input, index) => ({
+    node.inputs = normalizedInputs.map((input, index) => ({
       name: input.name,
       type: input.type,
       linkId:
         node.inputs[index]?.type === input.type ? node.inputs[index]?.linkId : undefined,
     }));
-    node.outputs = nextOutputs.map((output, index) => ({
+    node.outputs = normalizedOutputs.map((output, index) => ({
       name: output.name,
       type: output.type,
       links: node.outputs[index]?.type === output.type ? [...node.outputs[index].links] : [],
@@ -319,7 +331,7 @@ export const createGraphSession = (canvas: HTMLCanvasElement, options: GraphSess
       if (graphNode.size) {
         node.size = graphNode.size;
       }
-      syncNodePorts(node, graphNode.inputs ?? [], baseNode?.outputs ?? []);
+      syncNodePorts(node, baseNode?.inputs ?? [], baseNode?.outputs ?? []);
       node.propertyDefs = baseNode?.properties ?? [];
       if (baseNode) {
         node.properties = {
@@ -346,6 +358,7 @@ export const createGraphSession = (canvas: HTMLCanvasElement, options: GraphSess
     syncNodeDefinition,
     destroy: () => {
       unsubscribeWorkflow();
+      unsubscribeGraph();
       canvasView.destroy();
     },
   };

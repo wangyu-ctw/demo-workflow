@@ -6,6 +6,7 @@ import type { GraphConfig } from "../../stores/graphStore";
 import { useGraphStore } from "../../stores/graphStore";
 import type { NodeSnapshot } from "../../stores/nodeStore";
 import { useNodeStore } from "../../stores/nodeStore";
+import { exportNodeDefinitionsAsJson } from "../../services/indexedDB";
 import {
   exportGraphConfig,
   getGraphNameFromFile,
@@ -154,6 +155,21 @@ export function Sidebar({ onAddNode, onOpenCreateNode, onImportGraph, disabled }
           ) : null}
         </div>
       </nav>
+      {import.meta.env.DEV ? (
+        <div className="sidebar-footer">
+          <button
+            className="nav-item"
+            type="button"
+            aria-label="导出节点库"
+            onClick={() => {
+              void exportNodeDefinitionsAsJson();
+            }}
+          >
+            <FiDownload />
+            <span className="nav-label">导出节点库</span>
+          </button>
+        </div>
+      ) : null}
     </aside>
   );
 }

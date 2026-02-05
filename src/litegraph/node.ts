@@ -131,11 +131,25 @@ export class LGraphNode {
     const statusColor = this.status ? WORKFLOW_STATUS_COLORS[this.status] : null;
     const titleX = statusColor ? x + 12 + 14 + 6 : x + 12;
     if (statusColor) {
-      const blinkAlpha = this.status === WorkflowStatus.PROGRESSING ? getBlinkAlpha(now) : 1;
+      const isProgressing = this.status === WorkflowStatus.PROGRESSING;
+      const isWaiting = this.status === WorkflowStatus.WAITING;
+      const blinkAlpha = isProgressing ? getBlinkAlpha(now) : 1;
+      const dotX = x + 12 + 7;
+      const dotY = y + 20;
       ctx.fillStyle = blinkAlpha < 1 ? toRgba(statusColor, blinkAlpha) : statusColor;
       ctx.beginPath();
-      ctx.arc(x + 12 + 7, y + 20, 7, 0, Math.PI * 2);
+      ctx.arc(dotX, dotY, 7, 0, Math.PI * 2);
       ctx.fill();
+      if (isWaiting) {
+        const pulse = (Math.sin(now / 260) + 1) / 2;
+        const ringRadius = 7 + pulse * 4;
+        const ringAlpha = 0.6 - 0.4 * pulse;
+        ctx.strokeStyle = toRgba(statusColor, ringAlpha);
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(dotX, dotY, ringRadius, 0, Math.PI * 2);
+        ctx.stroke();
+      }
       ctx.fillStyle = "#e6e9ef";
     }
     ctx.fillText(this.title, titleX, y + 24);

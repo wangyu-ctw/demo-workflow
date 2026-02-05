@@ -134,3 +134,10 @@
   background: rgb(118 118 118);
   margin: 8px 0;
 }
+
+.sidebar-footer {
+  margin-top: auto;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}

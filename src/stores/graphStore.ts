@@ -33,6 +33,7 @@ type GraphStore = {
   name: string;
   nodes: GraphNodeSnapshot[];
   links: GraphLink[];
+  editing: boolean;
   setGraph: (nodes: GraphNodeSnapshot[], links: GraphLink[], name?: string) => void;
   addNode: (node: Omit<GraphNodeSnapshot, "id">) => GraphNodeSnapshot;
   removeNode: (nodeId: string) => void;
@@ -41,6 +42,7 @@ type GraphStore = {
   updateNodesByDefinition: (definition: NodeSnapshot) => void;
   addLink: (link: GraphLink) => void;
   removeLink: (link: GraphLink) => void;
+  setEditing: (editing: boolean) => void;
   onReset: () => void;
 };
 
@@ -50,6 +52,8 @@ export const useGraphStore = create<GraphStore>()(
       name: "",
       nodes: [],
       links: [],
+      editing: true,
+      setEditing: (editing) => set({ editing }, false, "graph/setEditing"),
       setGraph: (nodes, links, name) =>
         set(
           (state) => ({ nodes, links, name: name ?? state.name }),
