@@ -10,7 +10,7 @@ export type WorkflowInputModalProps = {
   inputForms: InputForm[];
   formValue?: WorkflowInputValues;
   onClose: () => void;
-  onSubmit?: (payload: { nodeId: string; values: Record<string, string> }) => void;
+  onSubmit?: (payload: { nodeId: string; values: Record<string, any> }) => void;
 };
 
 type FillWorkflowInputsOptions = Omit<WorkflowInputModalProps, "isOpen" | "onClose" | "onSubmit"> & {
@@ -40,9 +40,7 @@ const emptyState: WorkflowInputModalState = {
 
 export function useWorkflowInputModal() {
   const [state, setState] = useState<WorkflowInputModalState>(emptyState);
-  const pendingRef = useRef<Deferred<{ nodeId: string; values: Record<string, string> } | void> | null>(
-    null
-  );
+  const pendingRef = useRef<Deferred<{ nodeId: string; values: Record<string, any> }> | null>(null);
 
   const closeModal = useCallback(() => {
     setState((prev) => ({ ...prev, isOpen: false }));
@@ -54,7 +52,7 @@ export function useWorkflowInputModal() {
 
   const fillWorkflowInputs = useCallback(
     (options: FillWorkflowInputsOptions) =>
-      new Promise<{ nodeId: string; values: Record<string, string> }>((resolve, reject) => {
+      new Promise<{ nodeId: string; values: Record<string, any> }>((resolve, reject) => {
         pendingRef.current?.reject(new Error("WorkflowInputModal replaced"));
         pendingRef.current = { resolve, reject };
         setState({
@@ -68,7 +66,7 @@ export function useWorkflowInputModal() {
     []
   );
 
-  const handleSubmit = useCallback((payload: { nodeId: string; values: Record<string, string> }) => {
+  const handleSubmit = useCallback((payload: { nodeId: string; values: Record<string, any> }) => {
     if (pendingRef.current) {
       pendingRef.current.resolve(payload);
       pendingRef.current = null;

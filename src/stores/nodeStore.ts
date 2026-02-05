@@ -7,6 +7,8 @@ export type NodePort = {
   type: SlotType;
   required?: boolean;
   options?: { label: string; value: string }[];
+  min?: number;
+  max?: number;
 };
 
 export enum NodePropertyType {

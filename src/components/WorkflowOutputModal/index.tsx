@@ -19,6 +19,20 @@ const toImageSrc = (value: unknown) => {
   return `data:image/png;base64,${value}`;
 };
 
+const toTextValue = (value: unknown) => {
+  if (value === null || value === undefined) {
+    return "";
+  }
+  if (typeof value === "object") {
+    try {
+      return JSON.stringify(value, null, 2);
+    } catch (error) {
+      return String(value);
+    }
+  }
+  return String(value);
+};
+
 export function WorkflowOutputModal({
   isOpen,
   nodeName,
@@ -39,7 +53,6 @@ export function WorkflowOutputModal({
         <div className="modal-header">
           <div>
             <h3>{nodeName || "输出结果"}</h3>
-            <p className="workflow-output-type">输出类型: {outputType}</p>
           </div>
           <button type="button" className="modal-close" onClick={onClose}>
             ✕
@@ -52,10 +65,10 @@ export function WorkflowOutputModal({
             </div>
           ) : null}
           {shouldShowText ? (
-            <pre className="workflow-output-text">{String(value ?? "")}</pre>
+            <p className="workflow-output-text">{toTextValue(value)}</p>
           ) : null}
           {!shouldShowImage && !shouldShowText ? (
-            <pre className="workflow-output-text">{String(value ?? "")}</pre>
+            <pre className="workflow-output-text">{toTextValue(value)}</pre>
           ) : null}
         </div>
         <div className="modal-actions">

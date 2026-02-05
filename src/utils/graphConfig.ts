@@ -32,7 +32,19 @@ export const readGraphConfigFile = async (file: File): Promise<GraphConfig> => {
 
 export const getGraphNameFromFile = (file: File) => toBaseName(file.name);
 
-export const exportGraphConfig = (config: GraphConfig, name: string) => {
+export const exportGraphConfig = (config: GraphConfig, nameOverride?: string) => {
+  let name = nameOverride ?? config.name ?? "";
+  name = name.trim();
+  if (!name) {
+    const text = window.prompt("请输入json文件名", "export");
+    if (!text) {
+      return;
+    }
+    name = text.trim();
+    if (!name) {
+      return;
+    }
+  }
   const payload = {
     name,
     nodes: config.nodes,

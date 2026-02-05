@@ -1,5 +1,5 @@
 import type { ChangeEvent } from "react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FiArrowRightCircle, FiDownload, FiEdit3, FiPlus } from "react-icons/fi";
 import { FaShareNodes } from "react-icons/fa6";
 import type { GraphConfig } from "../../stores/graphStore";
@@ -21,6 +21,8 @@ type SidebarProps = {
 };
 
 export function Sidebar({ onAddNode, onOpenCreateNode, onImportGraph, disabled }: SidebarProps) {
+  const editGroupRef = useRef<HTMLDivElement>(null);
+  const libraryGroupRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
@@ -54,36 +56,31 @@ export function Sidebar({ onAddNode, onOpenCreateNode, onImportGraph, disabled }
   };
 
   const handleExportClick = () => {
-    let name = graphName.trim();
-    if (!name) {
-      const text = window.prompt("请输入json文件名", "export");
-      if (!text) {
-        return;
-      }
-      name = text.trim();
-      if (!name) {
-        return;
-      }
-    }
-    exportGraphConfig({ nodes: graphNodes, links: graphLinks, name }, name);
+    exportGraphConfig({ nodes: graphNodes, links: graphLinks, name: graphName });
   };
+
+  useEffect(() => {
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (editGroupRef.current && !editGroupRef.current.contains(target)) {
+        setIsEditOpen(false);
+      }
+      if (libraryGroupRef.current && !libraryGroupRef.current.contains(target)) {
+        setIsLibraryOpen(false);
+      }
+    };
+    window.addEventListener("mousedown", handlePointerDown);
+    return () => window.removeEventListener("mousedown", handlePointerDown);
+  }, []);
 
   return (
     <aside className="sidebar">
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="application/json,.json"
-        style={{ display: "none" }}
-        onChange={handleFileChange}
-      />
       <nav className="sidebar-nav">
-        <div className="nav-item-group">
+        <div className="nav-item-group" ref={editGroupRef}>
           <button
             className={`nav-item ${isEditOpen ? "is-open" : ""}`}
             type="button"
             onClick={() => setIsEditOpen((prev) => !prev)}
-            disabled={disabled}
           >
             <FiEdit3 />
             <span className="nav-label">编辑</span>
@@ -99,11 +96,17 @@ export function Sidebar({ onAddNode, onOpenCreateNode, onImportGraph, disabled }
                 <FiArrowRightCircle className="nav-submenu-icon" />
                 导入
               </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="application/json,.json"
+                style={{ display: "none" }}
+                onChange={handleFileChange}
+              />
               <button
                 className="nav-submenu-item"
                 type="button"
                 onClick={handleExportClick}
-                disabled={disabled}
               >
                 <FiDownload className="nav-submenu-icon" />
                 导出
@@ -111,12 +114,11 @@ export function Sidebar({ onAddNode, onOpenCreateNode, onImportGraph, disabled }
             </div>
           ) : null}
         </div>
-        <div className="nav-item-group">
+        <div className="nav-item-group" ref={libraryGroupRef}>
           <button
             className={`nav-item ${isLibraryOpen ? "is-open" : ""}`}
             type="button"
             onClick={() => setIsLibraryOpen((prev) => !prev)}
-            disabled={disabled}
           >
             <FaShareNodes />
             <span className="nav-label">节点库</span>

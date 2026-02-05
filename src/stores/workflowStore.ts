@@ -4,7 +4,7 @@ import { execute } from "../services/api";
 import type { GraphLink, GraphNodeSnapshot } from "./graphStore";
 import { useGraphStore } from "./graphStore";
 import type { NodeSnapshot } from "./nodeStore";
-import { useNodeStore } from "./nodeStore";
+import { getNodeDefaultProperties, useNodeStore } from "./nodeStore";
 import type { InputForm, WorkflowLink, WorkflowNodeSnapshot } from "../types/workflow";
 import { WorkflowStatus } from "../types/workflow";
 
@@ -21,7 +21,7 @@ type FillWorkflowInputs = (options: {
   nodeName: string;
   inputForms: InputForm[];
   formValue?: Record<string, any>;
-}) => Promise<{ nodeId: string; values: Record<string, string> }>;
+}) => Promise<{ nodeId: string; values: Record<string, any> }>;
 
 type WorkflowRun = {
   fillWorkflowInputs: FillWorkflowInputs;
@@ -31,198 +31,12 @@ type WorkflowRun = {
   results: Map<string, unknown>;
   queue: string[];
   isRunning: boolean;
+  running: Set<string>;
   nodeDefinitions: Record<number, NodeSnapshot>;
   runQueue?: () => Promise<void>;
 };
 
 let activeRun: WorkflowRun | null = null;
-
-const getNodeName = (node: WorkflowNodeSnapshot) => node.title ?? node.executionId ?? "节点";
-
-const toInputForms = (node: GraphNodeSnapshot, nodeDefinitions: Record<number, NodeSnapshot>) => {
-  const definition = node.nodeId ? nodeDefinitions[node.nodeId] : undefined;
-  const inputs = definition?.inputs ?? [];
-  return inputs.length > 0 ? [inputs] : [];
-};
-
-const getRequiredMissing = (forms: InputForm[], values: Record<string, any>) =>
-  forms.some((form, formIndex) =>
-    form.some((input) => {
-      if (!input.required) {
-        return false;
-      }
-      const key = `${formIndex}:${input.name}`;
-      const value = values[key];
-      if (value === undefined || value === null) {
-        return true;
-      }
-      if (typeof value === "string" && value.trim() === "") {
-        return true;
-      }
-      return false;
-    })
-  );
-
-const buildFormValueFromOutputs = (
-  node: WorkflowNodeSnapshot,
-  run: WorkflowRun
-): Record<string, any> => {
-  const incoming = run.incoming.get(node.id) ?? [];
-  if (incoming.length === 0) {
-    return {};
-  }
-  const definition = node.nodeId ? run.nodeDefinitions[node.nodeId] : undefined;
-  const values: Record<string, any> = {};
-  incoming.forEach((link) => {
-    const inputName = definition?.inputs?.[link.toSlot]?.name ?? node.inputs?.[link.toSlot]?.name;
-    if (!inputName) {
-      return;
-    }
-    const outputValue = run.results.get(link.fromNodeId);
-    if (outputValue === undefined) {
-      return;
-    }
-    values[`0:${inputName}`] = outputValue;
-  });
-  return values;
-};
-
-const executeNodeWithInputs = async (
-  node: WorkflowNodeSnapshot,
-  setState: (partial: WorkflowStore | Partial<WorkflowStore> | ((state: WorkflowStore) => WorkflowStore | Partial<WorkflowStore>), replace?: boolean) => void,
-  getState: () => WorkflowStore
-) => {
-  if (!activeRun) {
-    return "error";
-  }
-  const inputForms = toInputForms(node, activeRun.nodeDefinitions);
-  const nodeName = getNodeName(node);
-  const formValue = buildFormValueFromOutputs(node, activeRun);
-  const hasIncoming = (activeRun.incoming.get(node.id)?.length ?? 0) > 0;
-
-  if (hasIncoming) {
-    if (inputForms.length > 0 && getRequiredMissing(inputForms, formValue)) {
-      setState((state) => ({
-        nodes: state.nodes.map((item) =>
-          item.id === node.id ? { ...item, status: WorkflowStatus.ERROR } : item
-        ),
-      }));
-      return "error";
-    }
-    setState((state) => ({
-      nodes: state.nodes.map((item) =>
-        item.id === node.id
-          ? { ...item, status: WorkflowStatus.PROGRESSING, inputFormValues: formValue }
-          : item
-      ),
-    }));
-    const result = await getState().executeNode({
-      executeId: Number(node.executionId),
-      inputFormValues: formValue,
-      propertyValues: node.propertyValues ?? {},
-    });
-    activeRun.results.set(node.id, result);
-    setState((state) => ({
-      nodes: state.nodes.map((item) =>
-        item.id === node.id
-          ? { ...item, status: WorkflowStatus.DONE, outputValue: result }
-          : item
-      ),
-      links: state.links.map((link) =>
-        link.fromNodeId === node.id ? { ...link, status: WorkflowStatus.DONE } : link
-      ),
-    }));
-    return "success";
-  }
-
-  if (inputForms.length === 0) {
-    setState((state) => ({
-      nodes: state.nodes.map((item) =>
-        item.id === node.id ? { ...item, status: WorkflowStatus.PROGRESSING } : item
-      ),
-    }));
-    const result = await getState().executeNode({
-      executeId: Number(node.executionId),
-      inputFormValues: {},
-      propertyValues: node.propertyValues ?? {},
-    });
-    activeRun.results.set(node.id, result);
-    setState((state) => ({
-      nodes: state.nodes.map((item) =>
-        item.id === node.id
-          ? { ...item, status: WorkflowStatus.DONE, outputValue: result }
-          : item
-      ),
-      links: state.links.map((link) =>
-        link.fromNodeId === node.id ? { ...link, status: WorkflowStatus.DONE } : link
-      ),
-    }));
-    return "success";
-  }
-
-  setState((state) => ({
-    nodes: state.nodes.map((item) =>
-      item.id === node.id ? { ...item, status: WorkflowStatus.PROGRESSING } : item
-    ),
-    pendingInputs: upsertPendingInput(state.pendingInputs, {
-      nodeId: node.id,
-      nodeName,
-      form: inputForms,
-      status: "pending",
-      formValue,
-    }),
-  }));
-
-  try {
-    const resolved = await activeRun.fillWorkflowInputs({
-      nodeId: node.id,
-      nodeName,
-      inputForms,
-      formValue,
-    });
-    if (getRequiredMissing(inputForms, resolved.values)) {
-      setState((state) => ({
-        nodes: state.nodes.map((item) =>
-          item.id === node.id ? { ...item, status: WorkflowStatus.ERROR } : item
-        ),
-      }));
-      return "error";
-    }
-    const result = await getState().executeNode({
-      executeId: Number(node.executionId),
-      inputFormValues: resolved.values,
-      propertyValues: node.propertyValues ?? {},
-    });
-    activeRun.results.set(node.id, result);
-    setState((state) => ({
-      nodes: state.nodes.map((item) =>
-        item.id === node.id
-          ? {
-              ...item,
-              status: WorkflowStatus.DONE,
-              inputFormValues: resolved.values,
-              outputValue: result,
-            }
-          : item
-      ),
-      pendingInputs: updatePendingInputStatus(state.pendingInputs, node.id, "done"),
-    }));
-    setState((state) => ({
-      links: state.links.map((link) =>
-        link.fromNodeId === node.id ? { ...link, status: WorkflowStatus.DONE } : link
-      ),
-    }));
-    return "success";
-  } catch {
-    setState((state) => ({
-      nodes: state.nodes.map((item) =>
-        item.id === node.id ? { ...item, status: WorkflowStatus.WAITING } : item
-      ),
-      pendingInputs: updatePendingInputStatus(state.pendingInputs, node.id, "waiting"),
-    }));
-    return "waiting";
-  }
-};
 
 type WorkflowStore = {
   nodes: WorkflowNodeSnapshot[];
@@ -258,189 +72,192 @@ export const useWorkflowStore = create<WorkflowStore>()(
       executeNode: ({ executeId, inputFormValues, propertyValues }) =>
         execute(executeId, { inputFormValues, propertyValues }),
       executeWorkflow: async () => {
-        const fillWorkflowInputs = get().fillWorkflowInputs;
-        if (!fillWorkflowInputs) {
-          return;
-        }
-        const { nodes: graphNodes, links: graphLinks } = useGraphStore.getState();
+        const graphState = useGraphStore.getState();
         const nodeDefinitions = useNodeStore.getState().nodes;
-        const workflowNodes: WorkflowNodeSnapshot[] = graphNodes.map((node) => ({
+        const workflowNodes: WorkflowNodeSnapshot[] = graphState.nodes.map((node) => ({
           ...node,
           status: WorkflowStatus.PENDING,
           inputFormValues: {},
-          propertyValues: { ...(node.properties ?? {}) },
+          propertyValues: resolvePropertyValues(node, nodeDefinitions),
           outputValue: undefined,
         }));
-        const workflowLinks: WorkflowLink[] = graphLinks.map((link) => ({
+        const workflowLinks: WorkflowLink[] = graphState.links.map((link) => ({
           ...link,
           status: WorkflowStatus.PENDING,
         }));
+        set({
+          nodes: workflowNodes,
+          links: workflowLinks,
+          pendingInputs: [],
+          workflowStatus: "progressing",
+        });
 
         const incoming = new Map<string, GraphLink[]>();
         const outgoing = new Map<string, GraphLink[]>();
-        graphLinks.forEach((link) => {
-          const nextIncoming = incoming.get(link.toNodeId) ?? [];
-          nextIncoming.push(link);
-          incoming.set(link.toNodeId, nextIncoming);
-          const nextOutgoing = outgoing.get(link.fromNodeId) ?? [];
-          nextOutgoing.push(link);
-          outgoing.set(link.fromNodeId, nextOutgoing);
+        graphState.nodes.forEach((node) => {
+          incoming.set(node.id, []);
+          outgoing.set(node.id, []);
         });
-
+        graphState.links.forEach((link) => {
+          incoming.get(link.toNodeId)?.push(link);
+          outgoing.get(link.fromNodeId)?.push(link);
+        });
         const remainingDeps = new Map<string, number>();
-        workflowNodes.forEach((node) => {
+        graphState.nodes.forEach((node) => {
           remainingDeps.set(node.id, incoming.get(node.id)?.length ?? 0);
         });
 
-        const queue = workflowNodes
-          .filter((node) => (incoming.get(node.id)?.length ?? 0) === 0)
-          .map((node) => node.id);
-
-        const startInputNodeIds = queue.filter((nodeId) => {
-          const node = workflowNodes.find((item) => item.id === nodeId);
-          if (!node) {
-            return false;
-          }
-          const form = toInputForms(node, nodeDefinitions);
-          return form.length > 0;
-        });
-
-        const pendingInputs: PendingInputItem[] = startInputNodeIds
-          .map((nodeId) => {
-            const node = workflowNodes.find((item) => item.id === nodeId);
-            if (!node) {
-              return null;
-            }
-            const form = toInputForms(node, nodeDefinitions);
-            return {
-              nodeId,
-              nodeName: getNodeName(node),
-              form,
-              status: "pending",
-            };
-          })
-          .filter((item): item is PendingInputItem => item !== null);
-
-        const nextWorkflowNodes = workflowNodes.map((node) =>
-          startInputNodeIds.includes(node.id)
-            ? { ...node, status: WorkflowStatus.WAITING }
-            : node
-        );
-        set({ nodes: nextWorkflowNodes, links: workflowLinks, pendingInputs });
-
-        activeRun = {
+        const fillWorkflowInputs = get().fillWorkflowInputs ?? (async () => ({ nodeId: "", values: {} }));
+        const run: WorkflowRun = {
           fillWorkflowInputs,
           incoming,
           outgoing,
           remainingDeps,
           results: new Map<string, unknown>(),
-          queue,
-          isRunning: false,
+          queue: [],
+          isRunning: true,
+          running: new Set<string>(),
           nodeDefinitions,
         };
-        set({ workflowStatus: "progressing" });
+        activeRun = run;
 
-        const handleNodeSuccess = (nodeId: string) => {
-          const currentRun = activeRun;
-          if (!currentRun) {
+        const runNode = async (nodeId: string) => {
+          if (!activeRun || !activeRun.isRunning) {
             return;
           }
-          const nextLinks = currentRun.outgoing.get(nodeId) ?? [];
-          nextLinks.forEach((link) => {
-            const nextCount = (currentRun.remainingDeps.get(link.toNodeId) ?? 0) - 1;
-            currentRun.remainingDeps.set(link.toNodeId, nextCount);
-            if (nextCount === 0) {
-              currentRun.queue.push(link.toNodeId);
+          if (activeRun.running.has(nodeId)) {
+            return;
+          }
+          const state = get();
+          const workflowNode = state.nodes.find((node) => node.id === nodeId);
+          if (!workflowNode) {
+            return;
+          }
+          const incomingLinks = activeRun.incoming.get(nodeId) ?? [];
+          const nodeInputs = getNodeInputs(workflowNode, activeRun.nodeDefinitions);
+          const needsInput =
+            incomingLinks.length === 0 &&
+            nodeInputs.length > 0 &&
+            Object.keys(workflowNode.inputFormValues ?? {}).length === 0;
+          if (needsInput) {
+            set((prev) => ({
+              nodes: prev.nodes.map((node) =>
+                node.id === nodeId ? { ...node, status: WorkflowStatus.WAITING } : node
+              ),
+              pendingInputs: upsertPendingInput(prev.pendingInputs, {
+                nodeId,
+                nodeName: workflowNode.title ?? workflowNode.executionId,
+                form: [nodeInputs],
+                status: "waiting",
+                formValue: workflowNode.inputFormValues,
+              }),
+            }));
+            return;
+          }
+
+          activeRun.running.add(nodeId);
+          const inputFormValues = resolveInputValues(nodeInputs, workflowNode.inputFormValues, incomingLinks, activeRun.results);
+          const propertyValues = workflowNode.propertyValues ?? {};
+          set((prev) => ({
+            nodes: prev.nodes.map((node) =>
+              node.id === nodeId
+                ? { ...node, status: WorkflowStatus.PROGRESSING, propertyValues, inputFormValues: workflowNode.inputFormValues }
+                : node
+            ),
+            links: prev.links.map((link) =>
+              link.fromNodeId === nodeId ? { ...link, status: WorkflowStatus.PROGRESSING } : link
+            ),
+          }));
+
+          try {
+            const executeId = workflowNode.nodeId ?? 0;
+            const outputValue = await get().executeNode({
+              executeId,
+              inputFormValues,
+              propertyValues,
+            });
+            if (!activeRun) {
+              return;
             }
-          });
-          if (!currentRun.isRunning && currentRun.queue.length > 0) {
-            currentRun.runQueue?.();
+            activeRun.results.set(nodeId, outputValue);
+            set((prev) => ({
+              nodes: prev.nodes.map((node) =>
+                node.id === nodeId ? { ...node, status: WorkflowStatus.DONE, outputValue } : node
+              ),
+              links: prev.links.map((link) =>
+                link.fromNodeId === nodeId ? { ...link, status: WorkflowStatus.DONE } : link
+              ),
+            }));
+
+            const outgoingLinks = activeRun.outgoing.get(nodeId) ?? [];
+            outgoingLinks.forEach((link) => {
+              const nextCount = (activeRun?.remainingDeps.get(link.toNodeId) ?? 0) - 1;
+              activeRun?.remainingDeps.set(link.toNodeId, Math.max(0, nextCount));
+              if (nextCount === 0) {
+                activeRun?.queue.push(link.toNodeId);
+              }
+            });
+          } catch (error) {
+            set((prev) => ({
+              nodes: prev.nodes.map((node) =>
+                node.id === nodeId ? { ...node, status: WorkflowStatus.ERROR } : node
+              ),
+              links: prev.links.map((link) =>
+                link.fromNodeId === nodeId ? { ...link, status: WorkflowStatus.ERROR } : link
+              ),
+              workflowStatus: "paused",
+            }));
+          } finally {
+            activeRun?.running.delete(nodeId);
+            await activeRun?.runQueue?.();
+            finalizeWorkflowIfIdle();
           }
         };
 
         const runQueue = async () => {
-          const run = activeRun;
-          if (!run || run.isRunning) {
+          if (!activeRun || !activeRun.isRunning) {
             return;
           }
-          run.isRunning = true;
-          while (run.queue.length > 0) {
-            const status = get().workflowStatus;
-            if (status !== "progressing") {
-              run.isRunning = false;
-              return;
-            }
-            const batch = run.queue.splice(0);
-            const tasks = batch.map(async (nodeId) => {
-              const node = get().nodes.find((item) => item.id === nodeId);
-              if (!node) {
-                return;
-              }
-              const outcome = await executeNodeWithInputs(node, set, get);
-              if (outcome === "success") {
-                handleNodeSuccess(nodeId);
-              }
-            });
-            await Promise.all(tasks);
+          if (get().workflowStatus !== "progressing") {
+            return;
           }
-          run.isRunning = false;
-          set((state) => ({
-            workflowStatus: state.workflowStatus === "progressing" ? "stopped" : state.workflowStatus,
-          }));
+          while (activeRun.queue.length > 0 && get().workflowStatus === "progressing") {
+            const nodeId = activeRun.queue.shift();
+            if (!nodeId) {
+              continue;
+            }
+            void runNode(nodeId);
+          }
         };
-        activeRun.runQueue = runQueue;
 
-        const run = activeRun;
-        if (run) {
-          const startNoInputNodeIds = run.queue.filter(
-            (nodeId) => !startInputNodeIds.includes(nodeId)
-          );
-          run.queue = [];
+        run.runQueue = runQueue;
 
-          const processPendingInputs = async () => {
-            if (get().workflowStatus !== "progressing") {
-              return;
-            }
-            while (true) {
-              const pending = get().pendingInputs.find((item) => item.status === "pending");
-              if (!pending) {
-                return;
-              }
-              const nextNode = get().nodes.find((item) => item.id === pending.nodeId);
-              if (!nextNode) {
-                return;
-              }
-              const outcome = await executeNodeWithInputs(nextNode, set, get);
-              if (outcome === "success") {
-                handleNodeSuccess(pending.nodeId);
-              }
-              if (get().workflowStatus !== "progressing") {
-                return;
-              }
-            }
-          };
-
-          const startNoInputTasks = startNoInputNodeIds.map(async (nodeId) => {
-            const node = get().nodes.find((item) => item.id === nodeId);
-            if (!node) {
-              return;
-            }
-            const outcome = await executeNodeWithInputs(node, set, get);
-            if (outcome === "success") {
-              handleNodeSuccess(nodeId);
-            }
-          });
-
-          void processPendingInputs();
-          await Promise.all(startNoInputTasks);
-        }
-
+        const initialNodes = graphState.nodes
+          .filter((node) => (remainingDeps.get(node.id) ?? 0) === 0)
+          .map((node) => node.id);
+        run.queue.push(...initialNodes);
         await runQueue();
       },
       onRun: async () => {
         if (get().workflowStatus === "paused") {
-          set({ workflowStatus: "progressing" });
-          await activeRun?.runQueue?.();
+          set((state) => ({
+            workflowStatus: "progressing",
+            nodes: state.nodes.map((node) =>
+              node.status === WorkflowStatus.PAUSED
+                ? { ...node, status: WorkflowStatus.PROGRESSING }
+                : node
+            ),
+            links: state.links.map((link) =>
+              link.status === WorkflowStatus.PAUSED
+                ? { ...link, status: WorkflowStatus.PROGRESSING }
+                : link
+            ),
+          }));
+          if (activeRun) {
+            await activeRun.runQueue?.();
+            return;
+          }
+          await get().executeWorkflow();
           return;
         }
         if (get().workflowStatus === "progressing") {
@@ -452,9 +269,26 @@ export const useWorkflowStore = create<WorkflowStore>()(
         if (get().workflowStatus !== "progressing") {
           return;
         }
-        set({ workflowStatus: "paused" });
+        set((state) => ({
+          workflowStatus: "paused",
+          nodes: state.nodes.map((node) =>
+            node.status === WorkflowStatus.PROGRESSING
+              ? { ...node, status: WorkflowStatus.PAUSED }
+              : node
+          ),
+          links: state.links.map((link) =>
+            link.status === WorkflowStatus.PROGRESSING
+              ? { ...link, status: WorkflowStatus.PAUSED }
+              : link
+          ),
+        }));
       },
       onStop: () => {
+        if (activeRun) {
+          activeRun.isRunning = false;
+          activeRun.queue = [];
+          activeRun.running.clear();
+        }
         activeRun = null;
         set((state) => ({
           workflowStatus: "stopped",
@@ -469,115 +303,45 @@ export const useWorkflowStore = create<WorkflowStore>()(
         }));
       },
       retryNodeInput: async (nodeId) => {
-        const run = activeRun;
-        if (!run) {
+        if (!activeRun) {
           return;
         }
-        const node = get().nodes.find((item) => item.id === nodeId);
-        if (!node) {
+        const state = get();
+        const workflowNode = state.nodes.find((node) => node.id === nodeId);
+        if (!workflowNode) {
           return;
         }
-        if ((run.incoming.get(nodeId)?.length ?? 0) > 0) {
+        const nodeInputs = getNodeInputs(workflowNode, activeRun.nodeDefinitions);
+        if (nodeInputs.length === 0) {
           return;
         }
-        const pending = get().pendingInputs.find((item) => item.nodeId === nodeId);
-        const formValue = pending?.formValue ?? buildFormValueFromOutputs(node, run);
-        const inputForms = pending?.form ?? toInputForms(node, run.nodeDefinitions);
-
-        set((state) => ({
-          nodes: state.nodes.map((item) =>
-            item.id === nodeId ? { ...item, status: WorkflowStatus.PROGRESSING } : item
-          ),
-          pendingInputs: upsertPendingInput(state.pendingInputs, {
-            nodeId,
-            nodeName: getNodeName(node),
-            form: inputForms,
-            status: "pending",
-            formValue,
-          }),
+        set((prev) => ({
+          pendingInputs: updatePendingInputStatus(prev.pendingInputs, nodeId, "pending"),
         }));
-
         try {
-          const resolved = await run.fillWorkflowInputs({
+          const result = await activeRun.fillWorkflowInputs({
             nodeId,
-            nodeName: getNodeName(node),
-            inputForms,
-            formValue,
+            nodeName: workflowNode.title ?? workflowNode.executionId,
+            inputForms: [nodeInputs],
+            formValue: workflowNode.inputFormValues,
           });
-          if (getRequiredMissing(inputForms, resolved.values)) {
-            set((state) => ({
-              nodes: state.nodes.map((item) =>
-                item.id === nodeId ? { ...item, status: WorkflowStatus.ERROR } : item
-              ),
-            }));
+          if (!result || result.nodeId !== nodeId) {
             return;
           }
-          const result = await get().executeNode({
-            executeId: Number(node.executionId),
-            inputFormValues: resolved.values,
-            propertyValues: node.propertyValues ?? {},
-          });
-          run.results.set(nodeId, result);
-          set((state) => ({
-            nodes: state.nodes.map((item) =>
-              item.id === nodeId
-                ? {
-                    ...item,
-                    status: WorkflowStatus.DONE,
-                    inputFormValues: resolved.values,
-                    outputValue: result,
-                  }
-                : item
+          set((prev) => ({
+            nodes: prev.nodes.map((node) =>
+              node.id === nodeId
+                ? { ...node, inputFormValues: result.values, status: WorkflowStatus.PROGRESSING }
+                : node
             ),
-          pendingInputs: updatePendingInputStatus(state.pendingInputs, nodeId, "done"),
+            pendingInputs: updatePendingInputStatus(prev.pendingInputs, nodeId, "done"),
+            workflowStatus: "progressing",
           }));
-          set((state) => ({
-            links: state.links.map((link) =>
-              link.fromNodeId === nodeId ? { ...link, status: WorkflowStatus.DONE } : link
-            ),
-          }));
-
-          const nextLinks = run.outgoing.get(nodeId) ?? [];
-          nextLinks.forEach((link) => {
-            const nextCount = (run.remainingDeps.get(link.toNodeId) ?? 0) - 1;
-            run.remainingDeps.set(link.toNodeId, nextCount);
-            if (nextCount === 0) {
-              run.queue.push(link.toNodeId);
-            }
-          });
-
-          if (!run.isRunning) {
-            run.isRunning = true;
-            while (run.queue.length > 0) {
-              const nextNodeId = run.queue.shift();
-              if (!nextNodeId) {
-                continue;
-              }
-              const nextNode = get().nodes.find((item) => item.id === nextNodeId);
-              if (!nextNode) {
-                continue;
-              }
-              const outcome = await executeNodeWithInputs(nextNode, set, get);
-              if (outcome !== "success") {
-                continue;
-              }
-              const followingLinks = run.outgoing.get(nextNodeId) ?? [];
-              followingLinks.forEach((nextLink) => {
-                const count = (run.remainingDeps.get(nextLink.toNodeId) ?? 0) - 1;
-                run.remainingDeps.set(nextLink.toNodeId, count);
-                if (count === 0) {
-                  run.queue.push(nextLink.toNodeId);
-                }
-              });
-            }
-            run.isRunning = false;
-          }
-        } catch {
-          set((state) => ({
-            nodes: state.nodes.map((item) =>
-              item.id === nodeId ? { ...item, status: WorkflowStatus.WAITING } : item
-            ),
-            pendingInputs: updatePendingInputStatus(state.pendingInputs, nodeId, "waiting"),
+          activeRun.queue.push(nodeId);
+          await activeRun.runQueue?.();
+        } catch (error) {
+          set((prev) => ({
+            pendingInputs: updatePendingInputStatus(prev.pendingInputs, nodeId, "waiting"),
           }));
         }
       },
@@ -599,4 +363,64 @@ const updatePendingInputStatus = (
   nodeId: string,
   status: PendingInputItem["status"]
 ) => items.map((item) => (item.nodeId === nodeId ? { ...item, status } : item));
+
+const resolvePropertyValues = (
+  node: GraphNodeSnapshot,
+  nodeDefinitions: Record<number, NodeSnapshot>
+) => {
+  if (!node.nodeId) {
+    return { ...(node.properties ?? {}) };
+  }
+  const definition = nodeDefinitions[node.nodeId];
+  if (!definition) {
+    return { ...(node.properties ?? {}) };
+  }
+  const defaults = getNodeDefaultProperties(definition);
+  return { ...defaults, ...(node.properties ?? {}) };
+};
+
+const getNodeInputs = (
+  node: GraphNodeSnapshot,
+  nodeDefinitions: Record<number, NodeSnapshot>
+): InputForm => {
+  return nodeDefinitions[node.nodeId]?.inputs ?? [];
+};
+
+const resolveInputValues = (
+  nodeInputs: InputForm,
+  rawValues: Record<string, any>,
+  incomingLinks: GraphLink[],
+  results: Map<string, unknown>
+) => {
+  const values: Record<string, unknown> = {};
+  const inputBySlot = new Map<number, GraphLink>();
+  incomingLinks.forEach((link) => {
+    inputBySlot.set(link.toSlot, link);
+  });
+  nodeInputs.forEach((input, index) => {
+    const link = inputBySlot.get(index);
+    if (link) {
+      values[input.name] = results.get(link.fromNodeId);
+      return;
+    }
+    const fieldKey = `0:${input.name}`;
+    if (rawValues && rawValues[fieldKey] !== undefined) {
+      values[input.name] = rawValues[fieldKey];
+    }
+  });
+  return values;
+};
+
+const finalizeWorkflowIfIdle = () => {
+  if (!activeRun) {
+    return;
+  }
+  const state = useWorkflowStore.getState();
+  const hasRunning = activeRun.running.size > 0;
+  const hasQueue = activeRun.queue.length > 0;
+  const hasWaiting = state.nodes.some((node) => node.status === WorkflowStatus.WAITING);
+  if (!hasRunning && !hasQueue && !hasWaiting && state.workflowStatus === "progressing") {
+    useWorkflowStore.setState({ workflowStatus: "stopped" });
+  }
+};
 

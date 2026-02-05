@@ -56,9 +56,8 @@ const generateImage = async (payload: ExecutorPayload) => {
 };
 
 const generatePrompt = async (_payload: ExecutorPayload) => {
-  const string= JSON.stringify(_payload);
-  const cleanedString = string.replace(/"/g, "").replace(/{/g, "").replace(/}/g, "").replace(/:/g, "").replace(/,/g, "").replace(/\s/g, "").replace(/\n/g, "");
-  return `enhanced: ${cleanedString}`;
+  const payload = {enhanced: true, payload: _payload};
+  return payload;
 };
 
 const delay = (ms: number) =>

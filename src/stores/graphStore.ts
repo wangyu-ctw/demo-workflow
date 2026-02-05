@@ -8,12 +8,11 @@ import { useWorkflowStore } from "./workflowStore";
 
 export type GraphNodeSnapshot = {
   id: string;
-  nodeId?: number;
+  nodeId: number;
   executionId: string;
   title?: string;
   pos: [number, number];
   size?: [number, number];
-  inputs?: { name: string; type: SlotType }[];
   properties?: Record<string, unknown>;
 };
 
@@ -129,7 +128,6 @@ export const useGraphStore = create<GraphStore>()(
                 executionId: definition.executionId,
                 title: definition.title,
                 size: definition.size,
-                inputs: definition.inputs,
                 properties: definition.properties ? nextProperties : undefined,
               };
             });
@@ -137,12 +135,12 @@ export const useGraphStore = create<GraphStore>()(
             const nodeDefinitions = useNodeStore.getState().nodes;
             const nodePortMap = new Map<
               string,
-              { inputs: GraphNodeSnapshot["inputs"]; outputs: NodeSnapshot["outputs"] }
+              { inputs: NodeSnapshot["inputs"]; outputs: NodeSnapshot["outputs"] }
             >();
             nextNodes.forEach((node) => {
               nodePortMap.set(node.id, {
-                inputs: node.inputs ?? [],
-                outputs: node.nodeId ? nodeDefinitions[node.nodeId]?.outputs ?? [] : [],
+                inputs: nodeDefinitions[node.nodeId]?.inputs ?? [],
+                outputs: nodeDefinitions[node.nodeId]?.outputs ?? [],
               });
             });
 

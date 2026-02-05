@@ -9,7 +9,9 @@
 }
 
 .workflow-output-text {
-  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 600px;
+  overflow-y: scroll;
   background: #0f131c;
   border: 1px solid #1e2533;
   border-radius: 10px;

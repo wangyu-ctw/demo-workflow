@@ -207,7 +207,7 @@ export function NodeConfigModal({
             </label>
           </div>
           <label className="form-field">
-            <span>类型</span>
+            <span>类型（暂时没啥用）</span>
             <select value={nodeCategory} onChange={(e) => setNodeCategory(e.target.value)}>
               {categoryOptions.map((category) => (
                 <option value={category} key={category}>
@@ -228,7 +228,7 @@ export function NodeConfigModal({
               <div className="form-empty">暂无输入</div>
             ) : (
               inputs.map((input, index) => {
-                const shouldShowOptions = ["array", "object"].includes(input.type);
+                const shouldShowOptions = ["select", "checkbox"].includes(input.type);
                 return (
                   <div className="form-card" key={`input-${index}`}>
                     <div className="form-row form-row-with-action">
@@ -290,6 +290,48 @@ export function NodeConfigModal({
                         <FaTrashCan aria-hidden="true" />
                       </button>
                     </div>
+                    {input.type === "number" ? (
+                      <div className="form-row">
+                        <div className="form-field compact">
+                          <span>最小值</span>
+                          <input
+                            type="number"
+                            value={input.min ?? ""}
+                            onChange={(e) => {
+                              const raw = e.target.value;
+                              const nextValue = raw === "" ? undefined : Number(raw);
+                              if (raw !== "" && Number.isNaN(nextValue)) {
+                                return;
+                              }
+                              setInputs((prev) =>
+                                prev.map((item, idx) =>
+                                  idx === index ? { ...item, min: nextValue } : item
+                                )
+                              );
+                            }}
+                          />
+                        </div>
+                        <div className="form-field compact">
+                          <span>最大值</span>
+                          <input
+                            type="number"
+                            value={input.max ?? ""}
+                            onChange={(e) => {
+                              const raw = e.target.value;
+                              const nextValue = raw === "" ? undefined : Number(raw);
+                              if (raw !== "" && Number.isNaN(nextValue)) {
+                                return;
+                              }
+                              setInputs((prev) =>
+                                prev.map((item, idx) =>
+                                  idx === index ? { ...item, max: nextValue } : item
+                                )
+                              );
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ) : null}
                     {shouldShowOptions ? (
                       <div className="form-section compact">
                         <header>

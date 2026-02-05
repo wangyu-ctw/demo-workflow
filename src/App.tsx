@@ -8,6 +8,7 @@ import { NodeToolbar } from "./components/NodeToolbar";
 import { WorkflowInputModal } from "./components/WorkflowInputModal";
 import { useWorkflowInputModal } from "./components/WorkflowInputModal/useWorkflowInputModal";
 import { WorkflowOutputModal } from "./components/WorkflowOutputModal";
+import { WorkflowStatusLegend } from "./components/WorkflowStatusLegend";
 import { createGraphSession } from "./litegraph/graphSession";
 import { getInitialNodes } from "./services/api";
 import type { GraphConfig } from "./stores/graphStore";
@@ -165,6 +166,7 @@ export default function App() {
       <GraphToolbar />
       <main className="main-content">
         <canvas id={CANVAS_ID} className="graph-canvas" />
+        {workflowStatus !== "stopped" ? <WorkflowStatusLegend /> : null}
         {nodeToolbar && workflowStatus === "stopped" ? (
           <NodeToolbar
             position={{ x: nodeToolbar.rect.x, y: nodeToolbar.rect.y }}

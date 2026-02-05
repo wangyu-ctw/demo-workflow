@@ -40,9 +40,7 @@ export const createGraphSession = (canvas: HTMLCanvasElement, options: GraphSess
   const buildGraphNode = (graphNode: GraphNodeSnapshot) => {
     const node = new BaseGraphNode(graphNode.title ?? "Node");
     node.type = graphNode.executionId;
-    const baseNode = graphNode.nodeId
-      ? useNodeStore.getState().nodes[graphNode.nodeId]
-      : undefined;
+    const baseNode = useNodeStore.getState().nodes[graphNode.nodeId];
     node.propertyDefs = baseNode?.properties ?? [];
     if (baseNode) {
       node.properties = {
@@ -55,7 +53,7 @@ export const createGraphSession = (canvas: HTMLCanvasElement, options: GraphSess
     if (graphNode.size) {
       node.size = graphNode.size;
     }
-    graphNode.inputs?.forEach((input) => {
+    (baseNode?.inputs ?? []).forEach((input) => {
       node.addInput(input.name, input.type);
     });
     (baseNode?.outputs ?? []).forEach((output) => {
@@ -218,7 +216,7 @@ export const createGraphSession = (canvas: HTMLCanvasElement, options: GraphSess
   const unsubscribeWorkflow = useWorkflowStore.subscribe((state) => {
     const isStopped = state.workflowStatus === "stopped";
     canvasView.linkEditingEnabled = isStopped;
-    canvasView.nodeDraggingEnabled = isStopped;
+    canvasView.nodeDraggingEnabled = true;
     nodeInstances.forEach((node, graphNodeId) => {
       const workflowNode = state.nodes.find((item) => item.id === graphNodeId);
       node.status = workflowNode?.status;
@@ -251,7 +249,6 @@ export const createGraphSession = (canvas: HTMLCanvasElement, options: GraphSess
       executionId: baseNode.executionId,
       title: baseNode.title,
       size: baseNode.size,
-      inputs: baseNode.inputs ?? [],
       pos: position,
       properties: defaults,
     });
