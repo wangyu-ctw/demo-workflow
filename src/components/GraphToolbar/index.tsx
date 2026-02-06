@@ -29,6 +29,8 @@ export function GraphToolbar() {
                 setEditing(nextEditing);
                 if (nextEditing) {
                   onReset();
+                } else {
+                  void onRun();
                 }
               }}
             />

@@ -445,11 +445,45 @@ export class InlineInputsController {
   }
 
   closeInlineEditor() {
-    if (this.inlineEditor) {
-      this.inlineEditor.remove();
-    }
+    const editor = this.inlineEditor;
     this.inlineEditor = null;
     this.inlineEditorMeta = null;
+    if (editor && editor.isConnected) {
+      try {
+        editor.remove();
+      } catch (error) {
+        // swallow to avoid breaking render loop on DOM race
+      }
+    }
+  }
+
+  commitInlineEditor() {
+    const editor = this.inlineEditor;
+    const meta = this.inlineEditorMeta;
+    if (!editor || !meta || meta.kind !== "field" || !meta.fieldKey) {
+      return;
+    }
+    const state = this.inlineInputs.get(meta.nodeId);
+    if (!state || state.item.status === "done") {
+      this.closeInlineEditor();
+      return;
+    }
+    const inputType = meta.input?.type;
+    if (inputType === "images") {
+      this.closeInlineEditor();
+      return;
+    }
+    if (inputType === "object") {
+      if (editor instanceof HTMLTextAreaElement) {
+        this.updateInlineValue(meta.nodeId, meta.fieldKey, editor.value);
+      }
+      this.closeInlineEditor();
+      return;
+    }
+    if (editor instanceof HTMLInputElement) {
+      this.updateInlineValue(meta.nodeId, meta.fieldKey, editor.value);
+    }
+    this.closeInlineEditor();
   }
 
   destroy() {

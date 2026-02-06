@@ -195,7 +195,7 @@ export class LGraphCanvas {
     if (this.handleInlineMouseDown(graphX, graphY, event)) {
       return;
     }
-    this.inlineController.closeInlineEditor();
+    this.inlineController.commitInlineEditor();
 
     if (this.handleStatusDotMouseDown(graphX, graphY)) {
       return;
@@ -279,6 +279,7 @@ export class LGraphCanvas {
     if (!inlineHit) {
       return false;
     }
+    this.inlineController.commitInlineEditor();
     event.preventDefault();
     event.stopPropagation();
     if (inlineHit.kind === "submit") {
