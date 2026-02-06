@@ -220,6 +220,9 @@ export const createGraphSession = (canvas: HTMLCanvasElement, options: GraphSess
 
   canvasView.linkEditingEnabled = useGraphStore.getState().editing;
   canvasView.nodeDraggingEnabled = true;
+  canvasView.onInlineSubmit = (nodeId, values) => {
+    useWorkflowStore.getState().submitNodeInput(nodeId, values);
+  };
 
   const unsubscribeWorkflow = useWorkflowStore.subscribe((state) => {
     nodeInstances.forEach((node, graphNodeId) => {
@@ -235,6 +238,7 @@ export const createGraphSession = (canvas: HTMLCanvasElement, options: GraphSess
       const workflowLink = state.links.find((item) => getLinkKey(item) === key);
       link.status = workflowLink?.status;
     });
+    canvasView.setInlineInputs(state.pendingInputs, (nodeId) => nodeInstances.get(nodeId));
   });
 
   const unsubscribeGraph = useGraphStore.subscribe((state) => {

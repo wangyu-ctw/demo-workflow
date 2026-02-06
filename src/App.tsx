@@ -5,8 +5,6 @@ import { PropertyEditModal } from "./components/PropertyEditModal";
 import { GraphToolbar } from "./components/GraphToolbar";
 import { Sidebar } from "./components/Sidebar";
 import { NodeToolbar } from "./components/NodeToolbar";
-import { WorkflowInputModal } from "./components/WorkflowInputModal";
-import { useWorkflowInputModal } from "./components/WorkflowInputModal/useWorkflowInputModal";
 import { WorkflowOutputModal } from "./components/WorkflowOutputModal";
 import { WorkflowStatusLegend } from "./components/WorkflowStatusLegend";
 import { createGraphSession } from "./litegraph/graphSession";
@@ -16,7 +14,6 @@ import { useGraphStore } from "./stores/graphStore";
 import type { NodeProperty } from "./stores/nodeStore";
 import { useNodeStore } from "./stores/nodeStore";
 import { useWorkflowStore } from "./stores/workflowStore";
-import { WorkflowStatus } from "./types/workflow";
 
 const CANVAS_ID = "graph-canvas";
 
@@ -51,14 +48,7 @@ export default function App() {
   const updateNodesByDefinition = useGraphStore((state) => state.updateNodesByDefinition);
   const editing = useGraphStore((state) => state.editing);
   const setNodes = useNodeStore((state) => state.setNodes);
-  const retryNodeInput = useWorkflowStore((state) => state.retryNodeInput);
-  const setFillWorkflowInputs = useWorkflowStore((state) => state.setFillWorkflowInputs);
   const workflowStatus = useWorkflowStore((state) => state.workflowStatus);
-  const { modalProps, fillWorkflowInputs } = useWorkflowInputModal();
-
-  useEffect(() => {
-    setFillWorkflowInputs(fillWorkflowInputs);
-  }, [fillWorkflowInputs, setFillWorkflowInputs]);
 
   const createSession = (canvas: HTMLCanvasElement) => {
     graphApiRef.current?.destroy();
@@ -93,13 +83,7 @@ export default function App() {
           value: payload.value,
         });
       },
-      onStatusDotClick: (node) => {
-        const workflowNode = useWorkflowStore.getState().nodes.find((item) => item.id === node.id);
-        if (workflowNode?.status !== WorkflowStatus.WAITING) {
-          return;
-        }
-        retryNodeInput(node.id);
-      },
+      onStatusDotClick: () => {},
     });
   };
 
@@ -223,7 +207,6 @@ export default function App() {
           setPropertyEditor(null);
         }}
       />
-      <WorkflowInputModal {...modalProps} />
       <WorkflowOutputModal
         isOpen={outputPreview !== null}
         nodeName={outputPreview?.nodeName ?? ""}

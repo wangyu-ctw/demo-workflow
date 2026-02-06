@@ -55,6 +55,7 @@ type WorkflowStore = {
   onRun: () => Promise<void>;
   onPause: () => void;
   onStop: () => void;
+  submitNodeInput: (nodeId: string, values: Record<string, any>) => Promise<void>;
   retryNodeInput: (nodeId: string) => Promise<void>;
 };
 
@@ -310,6 +311,27 @@ export const useWorkflowStore = create<WorkflowStore>()(
           })),
           links: state.links.map((link) => ({ ...link, status: WorkflowStatus.PENDING })),
         }));
+      },
+      submitNodeInput: async (nodeId, values) => {
+        if (!activeRun) {
+          return;
+        }
+        const state = get();
+        const workflowNode = state.nodes.find((node) => node.id === nodeId);
+        if (!workflowNode) {
+          return;
+        }
+        set((prev) => ({
+          nodes: prev.nodes.map((node) =>
+            node.id === nodeId
+              ? { ...node, inputFormValues: values, status: WorkflowStatus.PROGRESSING }
+              : node
+          ),
+          pendingInputs: updatePendingInputStatus(prev.pendingInputs, nodeId, "done"),
+          workflowStatus: "progressing",
+        }));
+        activeRun.queue.push(nodeId);
+        await activeRun.runQueue?.();
       },
       retryNodeInput: async (nodeId) => {
         if (!activeRun) {
