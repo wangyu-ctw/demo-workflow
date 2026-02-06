@@ -3,7 +3,6 @@ import { getCanvasPoint } from "./utils/canvasUtils";
 import type { LLink, Point, SlotType } from "./types";
 import { LGraph } from "./graph";
 import { LGraphNode } from "./node";
-import { WorkflowStatus } from "../types/workflow";
 import type { InlineInputItem } from "./inlineInputs/controller";
 import { InlineInputsController } from "./inlineInputs/controller";
 
@@ -17,7 +16,6 @@ export class LGraphCanvas {
   onLinkRemoved?: (link: LLink) => void;
   onPropertyClick?: (node: LGraphNode, propertyIndex: number) => void;
   onStatusDotClick?: (node: LGraphNode) => void;
-  onOutputDotClick?: (payload: { node: LGraphNode; slot: number }) => void;
   onSelectionChange?: (
     selection:
       | { node: LGraphNode; rect: { x: number; y: number; width: number; height: number } }
@@ -48,6 +46,8 @@ export class LGraphCanvas {
     | null = null;
   private linkSnapDistance = 18;
   private didAutoCenter = false;
+  private isInteracting = false;
+  private wheelTimer: number | null = null;
   linkEditingEnabled = true;
   nodeDraggingEnabled = true;
 
@@ -123,6 +123,25 @@ export class LGraphCanvas {
     this.setSelectedNode(null);
   }
 
+  getTransform() {
+    return { scale: this.scale, offset: [...this.offset] as Point, pixelRatio: this.pixelRatio };
+  }
+
+  isInteractionActive() {
+    return this.isInteracting;
+  }
+
+  getNodeScreenRect(node: LGraphNode) {
+    const [x, y] = node.pos;
+    const [w, h] = node.size;
+    return {
+      x: (x + this.offset[0]) * this.scale,
+      y: (y + this.offset[1]) * this.scale,
+      width: w * this.scale,
+      height: h * this.scale,
+    };
+  }
+
   getViewportCenter(): Point {
     return this.toGraphSpace(this.canvas.clientWidth / 2, this.canvas.clientHeight / 2);
   }
@@ -188,6 +207,7 @@ export class LGraphCanvas {
   };
 
   private handleMouseDown = (event: MouseEvent) => {
+    this.isInteracting = true;
     const [canvasX, canvasY] = getCanvasPoint(this.canvas, event);
     const [graphX, graphY] = this.toGraphSpace(canvasX, canvasY);
     this.lastMouse = [canvasX, canvasY];
@@ -202,10 +222,6 @@ export class LGraphCanvas {
     }
 
     const outputSlot = this.getOutputSlotAt(graphX, graphY);
-    if (this.handleOutputPreviewMouseDown(outputSlot)) {
-      return;
-    }
-
     if (this.handleLinkingStart(graphX, graphY, outputSlot)) {
       return;
     }
@@ -242,6 +258,11 @@ export class LGraphCanvas {
   };
 
   private handleMouseUp = (event: MouseEvent) => {
+    this.isInteracting = false;
+    if (this.wheelTimer !== null) {
+      window.clearTimeout(this.wheelTimer);
+      this.wheelTimer = null;
+    }
     if (this.handleMouseUpCanvasButtons(event)) {
       return;
     }
@@ -270,6 +291,14 @@ export class LGraphCanvas {
 
   private handleWheel = (event: WheelEvent) => {
     event.preventDefault();
+    this.isInteracting = true;
+    if (this.wheelTimer !== null) {
+      window.clearTimeout(this.wheelTimer);
+    }
+    this.wheelTimer = window.setTimeout(() => {
+      this.isInteracting = false;
+      this.wheelTimer = null;
+    }, 120);
     this.inlineController.closeInlineEditor();
     this.applyZoom(event);
   };
@@ -301,20 +330,6 @@ export class LGraphCanvas {
         this.onStatusDotClick?.(node);
         return true;
       }
-    }
-    return false;
-  }
-
-  private handleOutputPreviewMouseDown(
-    outputSlot?: { node: LGraphNode; slot: number } | null
-  ) {
-    if (
-      outputSlot &&
-      outputSlot.node.status === WorkflowStatus.DONE &&
-      outputSlot.node.outputValue !== undefined
-    ) {
-      this.onOutputDotClick?.(outputSlot);
-      return true;
     }
     return false;
   }
@@ -804,16 +819,6 @@ export class LGraphCanvas {
     }
 
     if (this.inlineController.hitTest(graphX, graphY)) {
-      this.setCursor("pointer");
-      return;
-    }
-
-    const outputSlot = this.getOutputSlotAt(graphX, graphY);
-    if (
-      outputSlot &&
-      outputSlot.node.status === WorkflowStatus.DONE &&
-      outputSlot.node.outputValue !== undefined
-    ) {
       this.setCursor("pointer");
       return;
     }

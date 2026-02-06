@@ -180,13 +180,6 @@ export class LGraphNode {
     });
     this.outputs.forEach((output, index) => {
       const [slotX, slotY] = this.getOutputSlotPos(index);
-      if (this.status === WorkflowStatus.DONE && this.outputValue !== undefined) {
-        ctx.strokeStyle = WORKFLOW_STATUS_COLORS[WorkflowStatus.DONE];
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(slotX, slotY, this.slotRadius + 5, 0, Math.PI * 2);
-        ctx.stroke();
-      }
       ctx.fillStyle = getSlotColor(output.type);
       ctx.beginPath();
       ctx.arc(slotX, slotY, this.slotRadius, 0, Math.PI * 2);
