@@ -35,7 +35,6 @@ export type NodeSnapshot = {
   category?: string;
   executionId: string;
   title?: string;
-  size?: [number, number];
   inputs?: NodePort[];
   outputs?: NodePort[];
   properties?: NodeProperty<unknown>[];

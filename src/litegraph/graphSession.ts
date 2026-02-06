@@ -53,9 +53,6 @@ export const createGraphSession = (canvas: HTMLCanvasElement, options: GraphSess
     } else {
       node.properties = { ...(graphNode.properties ?? {}) };
     }
-    if (graphNode.size) {
-      node.size = graphNode.size;
-    }
     (baseNode?.inputs ?? []).forEach((input) => {
       const label = input.label?.trim() || input.name;
       node.addInput(label, input.type);
@@ -260,7 +257,6 @@ export const createGraphSession = (canvas: HTMLCanvasElement, options: GraphSess
       nodeId: baseNode.id,
       executionId: baseNode.executionId,
       title: baseNode.title,
-      size: baseNode.size,
       pos: position,
       properties: defaults,
     });
@@ -330,9 +326,6 @@ export const createGraphSession = (canvas: HTMLCanvasElement, options: GraphSess
       }
       node.title = graphNode.title ?? node.title;
       node.type = graphNode.executionId;
-      if (graphNode.size) {
-        node.size = graphNode.size;
-      }
       syncNodePorts(node, baseNode?.inputs ?? [], baseNode?.outputs ?? []);
       node.propertyDefs = baseNode?.properties ?? [];
       if (baseNode) {

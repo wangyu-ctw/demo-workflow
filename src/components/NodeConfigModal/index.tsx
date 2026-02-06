@@ -79,8 +79,6 @@ export function NodeConfigModal({
   const [nodeName, setNodeName] = useState("");
   const [nodeCategory, setNodeCategory] = useState(categoryOptions[0] ?? "custom");
   const shouldShowCustomCategory = !categoryOptions.includes(nodeCategory);
-  const [nodeWidth, setNodeWidth] = useState(180);
-  const [nodeHeight, setNodeHeight] = useState(80);
   const [inputs, setInputs] = useState<NodePort[]>([]);
   const [outputs, setOutputs] = useState<NodePort[]>([]);
   const [properties, setProperties] = useState<FormProperty[]>([]);
@@ -89,8 +87,6 @@ export function NodeConfigModal({
   const resetCreateForm = () => {
     setNodeName("");
     setNodeCategory(categoryOptions[0] ?? "custom");
-    setNodeWidth(180);
-    setNodeHeight(80);
     setInputs([]);
     setOutputs([]);
     setProperties([]);
@@ -104,8 +100,6 @@ export function NodeConfigModal({
     if (editingNode) {
       setNodeName(editingNode.title ?? "");
       setNodeCategory(editingNode.category ?? categoryOptions[0] ?? "custom");
-      setNodeWidth(editingNode.size?.[0] ?? 180);
-      setNodeHeight(editingNode.size?.[1] ?? 80);
       setInputs((editingNode.inputs ?? []).map(normalizePort));
       setOutputs((editingNode.outputs ?? []).map(normalizePort));
       setProperties(toFormProperties(editingNode.properties));
@@ -170,7 +164,6 @@ export function NodeConfigModal({
       category: nodeCategory,
       executionId,
       title: nodeName.trim() || nodeCategory,
-      size: [nodeWidth, nodeHeight],
       inputs: normalizedInputs.length ? normalizedInputs : undefined,
       outputs: normalizedOutputs.length ? normalizedOutputs : undefined,
       properties: normalizedProperties.length ? normalizedProperties : undefined,
@@ -205,24 +198,6 @@ export function NodeConfigModal({
             <span>节点名称</span>
             <input value={nodeName} onChange={(e) => setNodeName(e.target.value)} />
           </label>
-          <div className="form-row">
-            <label className="form-field">
-              <span>宽度</span>
-              <input
-                type="number"
-                value={nodeWidth}
-                onChange={(e) => setNodeWidth(Number(e.target.value))}
-              />
-            </label>
-            <label className="form-field">
-              <span>高度</span>
-              <input
-                type="number"
-                value={nodeHeight}
-                onChange={(e) => setNodeHeight(Number(e.target.value))}
-              />
-            </label>
-          </div>
           <label className="form-field">
             <span>目录（目前没啥用但强烈建议使用）</span>
             <select value={nodeCategory} onChange={(e) => setNodeCategory(e.target.value)}>
@@ -245,7 +220,7 @@ export function NodeConfigModal({
               <div className="form-empty">暂无输入</div>
             ) : (
               inputs.map((input, index) => {
-                const shouldShowOptions = ["select", "checkbox"].includes(input.type);
+                const shouldShowOptions = input.type === "select";
                 return (
                   <div className="form-card" key={`input-${index}`}>
                     <div className="form-row form-row-with-action">
@@ -289,13 +264,11 @@ export function NodeConfigModal({
                             )
                           }
                         >
-                          <option value="image">image</option>
-                          <option value="prompt">prompt</option>
-                          <option value="number">number</option>
+                          <option value="object">object</option>
+                          <option value="images">images</option>
                           <option value="string">string</option>
-                          <option value="boolean">boolean</option>
                           <option value="select">select</option>
-                          <option value="checkbox">checkbox</option>
+                          <option value="number">number</option>
                         </select>
                       </div>
                       <div className="require-checkbox">
@@ -343,6 +316,29 @@ export function NodeConfigModal({
                         </div>
                         <div className="form-field compact">
                           <span>最大值</span>
+                          <input
+                            type="number"
+                            value={input.max ?? ""}
+                            onChange={(e) => {
+                              const raw = e.target.value;
+                              const nextValue = raw === "" ? undefined : Number(raw);
+                              if (raw !== "" && Number.isNaN(nextValue)) {
+                                return;
+                              }
+                              setInputs((prev) =>
+                                prev.map((item, idx) =>
+                                  idx === index ? { ...item, max: nextValue } : item
+                                )
+                              );
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ) : null}
+                    {input.type === "images" ? (
+                      <div className="form-row">
+                        <div className="form-field compact">
+                          <span>最多数量</span>
                           <input
                             type="number"
                             value={input.max ?? ""}
@@ -465,6 +461,29 @@ export function NodeConfigModal({
                         </button>
                       </div>
                     ) : null}
+                    {input.type === "select" ? (
+                      <div className="form-row">
+                        <div className="form-field compact">
+                          <span>最多选择</span>
+                          <input
+                            type="number"
+                            value={input.max ?? ""}
+                            onChange={(e) => {
+                              const raw = e.target.value;
+                              const nextValue = raw === "" ? undefined : Number(raw);
+                              if (raw !== "" && Number.isNaN(nextValue)) {
+                                return;
+                              }
+                              setInputs((prev) =>
+                                prev.map((item, idx) =>
+                                  idx === index ? { ...item, max: nextValue } : item
+                                )
+                              );
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
                 );
               })
@@ -475,7 +494,7 @@ export function NodeConfigModal({
               onClick={() =>
                 setInputs((prev) => [
                   ...prev,
-                  { label: "", name: "", type: "prompt", required: false },
+                  { label: "", name: "", type: "string", required: false },
                 ])
               }
             >
@@ -535,8 +554,9 @@ export function NodeConfigModal({
                         )
                       }
                     >
-                      <option value="image">image</option>
-                      <option value="prompt">prompt</option>
+                      <option value="object">object</option>
+                      <option value="images">images</option>
+                      <option value="string">string</option>
                       <option value="number">number</option>
                     </select>
                   </div>
@@ -554,7 +574,7 @@ export function NodeConfigModal({
               type="button"
               className="mini-button with-icon"
               onClick={() =>
-                setOutputs((prev) => [...prev, { label: "", name: "", type: "prompt" }])
+                setOutputs((prev) => [...prev, { label: "", name: "", type: "string" }])
               }
             >
               <p>

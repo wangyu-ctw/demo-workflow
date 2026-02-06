@@ -1,6 +1,6 @@
 import type { WorkflowStatus } from "../types/workflow";
 
-export type SlotType = "image" | "prompt" | "number" | "string" | "boolean" | "select" | "checkbox";
+export type SlotType = "object" | "images" | "string" | "select" | "number";
 
 export interface NodeInput {
   name: string;

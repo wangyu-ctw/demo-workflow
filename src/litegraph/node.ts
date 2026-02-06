@@ -112,6 +112,14 @@ export class LGraphNode {
     if (requiredHeight !== this.size[1]) {
       this.size[1] = requiredHeight;
     }
+    ctx.font = "14px sans-serif";
+    const statusColor = this.status ? WORKFLOW_STATUS_COLORS[this.status] : null;
+    const titlePaddingLeft = statusColor ? 12 + 14 + 6 : 12;
+    const titleWidth = ctx.measureText(this.title).width;
+    const requiredWidth = Math.max(180, titlePaddingLeft + titleWidth + 12);
+    if (requiredWidth !== this.size[0]) {
+      this.size[0] = requiredWidth;
+    }
     const [w, h] = this.size;
 
     ctx.fillStyle = "#333333";
@@ -128,7 +136,6 @@ export class LGraphNode {
 
     ctx.fillStyle = "#e6e9ef";
     ctx.font = "14px sans-serif";
-    const statusColor = this.status ? WORKFLOW_STATUS_COLORS[this.status] : null;
     const titleX = statusColor ? x + 12 + 14 + 6 : x + 12;
     if (statusColor) {
       const isProgressing = this.status === WorkflowStatus.PROGRESSING;

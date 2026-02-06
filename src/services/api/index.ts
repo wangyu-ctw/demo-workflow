@@ -5,6 +5,7 @@ import {
   ensureInitialNodes,
   getNodeDefinition,
   listNodeDefinitions,
+  resetNodeDefinitionsOnce,
   updateNodeDefinition,
 } from "../indexedDB";
 import { executor } from "../mock/executor";
@@ -15,6 +16,7 @@ const delay = (ms: number) =>
   });
 
 export const getInitialNodes = async (): Promise<NodeSnapshot[]> => {
+  await resetNodeDefinitionsOnce();
   await delay(1000);
   const cached = await listNodeDefinitions();
   if (cached.length > 0) {
@@ -34,6 +36,7 @@ export {
   deleteNodeDefinition,
   getNodeDefinition,
   listNodeDefinitions,
+  resetNodeDefinitionsOnce,
   updateNodeDefinition,
 };
 

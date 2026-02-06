@@ -3,6 +3,7 @@ import initialNodes from "../mock/initialNodes.json";
 import { NODE_STORE, openDatabase, requestToPromise, transactionDone } from "./db";
 
 const INITIAL_NODES_FLAG = "artifex.initialNodesSeeded";
+const RESET_NODES_FLAG = "artifex.nodeDefinitionsReset.20260206";
 
 type InitialNodesPayload = {
   version: string;
@@ -39,6 +40,21 @@ export const ensureInitialNodes = async () =>
     });
     window.localStorage.setItem(INITIAL_NODES_FLAG, initialNodesPayload.version);
   });
+
+export const resetNodeDefinitions = async () =>
+  withStore("readwrite", async (store) => {
+    await requestToPromise(store.clear());
+    window.localStorage.removeItem(INITIAL_NODES_FLAG);
+  });
+
+export const resetNodeDefinitionsOnce = async () => {
+  const hasReset = window.localStorage.getItem(RESET_NODES_FLAG);
+  if (hasReset) {
+    return;
+  }
+  await resetNodeDefinitions();
+  window.localStorage.setItem(RESET_NODES_FLAG, "true");
+};
 
 export const listNodeDefinitions = async () =>
   withStore("readonly", async (store) =>

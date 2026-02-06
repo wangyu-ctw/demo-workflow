@@ -44,8 +44,16 @@ export function WorkflowOutputModal({
     return null;
   }
 
-  const shouldShowImage = outputType === "image";
-  const shouldShowText = outputType === "prompt" || outputType === "number";
+  const shouldShowImages = outputType === "images";
+  const shouldShowText = outputType === "string" || outputType === "number";
+  const shouldShowObject = outputType === "object";
+  const images = shouldShowImages
+    ? Array.isArray(value)
+      ? value
+      : value
+      ? [value]
+      : []
+    : [];
 
   return (
     <div className="modal-overlay">
@@ -59,15 +67,24 @@ export function WorkflowOutputModal({
           </button>
         </div>
         <div className="modal-body">
-          {shouldShowImage ? (
-            <div className="workflow-output-image">
-              <img src={toImageSrc(value)} alt="output" />
+          {shouldShowImages ? (
+            <div className="workflow-output-image-list">
+              {images.length === 0 ? (
+                <p className="workflow-output-text">{toTextValue(value)}</p>
+              ) : (
+                images.map((item, index) => (
+                  <img key={index} src={toImageSrc(item)} alt={`output-${index + 1}`} />
+                ))
+              )}
             </div>
           ) : null}
           {shouldShowText ? (
             <p className="workflow-output-text">{toTextValue(value)}</p>
           ) : null}
-          {!shouldShowImage && !shouldShowText ? (
+          {shouldShowObject ? (
+            <pre className="workflow-output-text">{toTextValue(value)}</pre>
+          ) : null}
+          {!shouldShowImages && !shouldShowText && !shouldShowObject ? (
             <pre className="workflow-output-text">{toTextValue(value)}</pre>
           ) : null}
         </div>

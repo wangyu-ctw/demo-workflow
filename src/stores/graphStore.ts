@@ -11,7 +11,6 @@ export type GraphNodeSnapshot = {
   executionId: string;
   title?: string;
   pos: [number, number];
-  size?: [number, number];
   properties?: Record<string, unknown>;
 };
 
@@ -130,7 +129,6 @@ export const useGraphStore = create<GraphStore>()(
                 ...node,
                 executionId: definition.executionId,
                 title: definition.title,
-                size: definition.size,
                 properties: definition.properties ? nextProperties : undefined,
               };
             });

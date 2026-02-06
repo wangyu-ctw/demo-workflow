@@ -5,6 +5,8 @@ export {
   exportNodeDefinitionsAsJson,
   getNodeDefinition,
   listNodeDefinitions,
+  resetNodeDefinitions,
+  resetNodeDefinitionsOnce,
   updateNodeDefinition,
 } from "./nodeDefinitions";
 
