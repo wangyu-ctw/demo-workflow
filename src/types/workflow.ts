@@ -1,4 +1,4 @@
-import type { GraphLink, GraphNodeSnapshot } from "../stores/graphStore";
+import type { GraphLink } from "../stores/graphStore";
 import type { NodePort } from "../stores/nodeStore";
 
 export enum WorkflowStatus {
@@ -10,7 +10,9 @@ export enum WorkflowStatus {
   WAITING = "WAITING",
 }
 
-export type WorkflowNodeSnapshot = GraphNodeSnapshot & {
+export type WorkflowNodeSnapshot = {
+  id: string;
+  nodeId: number;
   status: WorkflowStatus;
   inputFormValues: Record<string, any>;
   propertyValues: Record<string, any>;

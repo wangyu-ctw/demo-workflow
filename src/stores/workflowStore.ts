@@ -33,6 +33,7 @@ type WorkflowRun = {
   isRunning: boolean;
   running: Set<string>;
   nodeDefinitions: Record<number, NodeSnapshot>;
+  graphNodes: Map<string, GraphNodeSnapshot>;
   runQueue?: () => Promise<void>;
 };
 
@@ -75,7 +76,8 @@ export const useWorkflowStore = create<WorkflowStore>()(
         const graphState = useGraphStore.getState();
         const nodeDefinitions = useNodeStore.getState().nodes;
         const workflowNodes: WorkflowNodeSnapshot[] = graphState.nodes.map((node) => ({
-          ...node,
+          id: node.id,
+          nodeId: node.nodeId,
           status: WorkflowStatus.PENDING,
           inputFormValues: {},
           propertyValues: resolvePropertyValues(node, nodeDefinitions),
@@ -108,6 +110,11 @@ export const useWorkflowStore = create<WorkflowStore>()(
         });
 
         const fillWorkflowInputs = get().fillWorkflowInputs ?? (async () => ({ nodeId: "", values: {} }));
+        const graphNodes = new Map<string, GraphNodeSnapshot>();
+        graphState.nodes.forEach((node) => {
+          graphNodes.set(node.id, node);
+        });
+
         const run: WorkflowRun = {
           fillWorkflowInputs,
           incoming,
@@ -118,6 +125,7 @@ export const useWorkflowStore = create<WorkflowStore>()(
           isRunning: true,
           running: new Set<string>(),
           nodeDefinitions,
+          graphNodes,
         };
         activeRun = run;
 
@@ -134,19 +142,20 @@ export const useWorkflowStore = create<WorkflowStore>()(
             return;
           }
           const incomingLinks = activeRun.incoming.get(nodeId) ?? [];
-          const nodeInputs = getNodeInputs(workflowNode, activeRun.nodeDefinitions);
+          const nodeInputs = getNodeInputs(workflowNode.nodeId, activeRun.nodeDefinitions);
           const needsInput =
             incomingLinks.length === 0 &&
             nodeInputs.length > 0 &&
             Object.keys(workflowNode.inputFormValues ?? {}).length === 0;
           if (needsInput) {
+            const graphNode = activeRun.graphNodes.get(nodeId);
             set((prev) => ({
               nodes: prev.nodes.map((node) =>
                 node.id === nodeId ? { ...node, status: WorkflowStatus.WAITING } : node
               ),
               pendingInputs: upsertPendingInput(prev.pendingInputs, {
                 nodeId,
-                nodeName: workflowNode.title ?? workflowNode.executionId,
+                nodeName: graphNode?.title ?? graphNode?.executionId ?? String(workflowNode.nodeId),
                 form: [nodeInputs],
                 status: "waiting",
                 formValue: workflowNode.inputFormValues,
@@ -311,17 +320,18 @@ export const useWorkflowStore = create<WorkflowStore>()(
         if (!workflowNode) {
           return;
         }
-        const nodeInputs = getNodeInputs(workflowNode, activeRun.nodeDefinitions);
+        const nodeInputs = getNodeInputs(workflowNode.nodeId, activeRun.nodeDefinitions);
         if (nodeInputs.length === 0) {
           return;
         }
+        const graphNode = activeRun.graphNodes.get(nodeId);
         set((prev) => ({
           pendingInputs: updatePendingInputStatus(prev.pendingInputs, nodeId, "pending"),
         }));
         try {
           const result = await activeRun.fillWorkflowInputs({
             nodeId,
-            nodeName: workflowNode.title ?? workflowNode.executionId,
+            nodeName: graphNode?.title ?? graphNode?.executionId ?? String(workflowNode.nodeId),
             inputForms: [nodeInputs],
             formValue: workflowNode.inputFormValues,
           });
@@ -380,10 +390,10 @@ const resolvePropertyValues = (
 };
 
 const getNodeInputs = (
-  node: GraphNodeSnapshot,
+  nodeId: number,
   nodeDefinitions: Record<number, NodeSnapshot>
 ): InputForm => {
-  return nodeDefinitions[node.nodeId]?.inputs ?? [];
+  return nodeDefinitions[nodeId]?.inputs ?? [];
 };
 
 const resolveInputValues = (
