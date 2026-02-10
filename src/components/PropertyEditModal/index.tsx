@@ -1,7 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
 import type { NodeProperty } from "../../stores/nodeStore";
 import { NodePropertyType } from "../../stores/nodeStore";
-import "./style.css";
+const modalOverlayClass =
+  "fixed inset-0 z-10 flex items-center justify-center bg-[rgba(8,10,15,0.72)]";
+const modalCardClass =
+  "flex max-h-[88vh] w-[min(420px,92vw)] flex-col overflow-hidden rounded-xl border border-[#2a2a2a] bg-[#333333] shadow-[0_24px_60px_rgba(0,0,0,0.45)]";
+const modalHeaderClass =
+  "flex items-center justify-between border-b border-[#2a2a2a] px-5 py-4";
+const modalCloseClass = "cursor-pointer bg-transparent text-base text-[#9aa4b2]";
+const modalBodyClass = "flex flex-col gap-4 overflow-y-scroll px-5 pb-5 pt-4";
+const modalActionsClass = "mt-1 flex justify-end gap-2.5 px-5 pb-4";
+const ghostButtonClass =
+  "rounded-[10px] border border-[#2a3246] bg-transparent px-3.5 py-2 text-xs text-[#c8d0db]";
+const primaryButtonClass =
+  "rounded-[10px] bg-[#3b68ff] px-3.5 py-2 text-xs text-[#f3f6ff]";
+const inputClass =
+  "w-full rounded-[10px] border border-[#1e2533] bg-[#0f131c] px-2.5 py-2 text-xs text-[#e6e9ef]";
+const formEmptyClass = "text-xs text-[#707a88]";
 
 type PropertyEditModalProps = {
   isOpen: boolean;
@@ -57,27 +72,28 @@ export function PropertyEditModal({
   };
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-card property-modal">
-        <div className="modal-header">
+    <div className={modalOverlayClass}>
+      <div className={modalCardClass}>
+        <div className={modalHeaderClass}>
           <div>
-            <h3>{nodeTitle}</h3>
+            <h3 className="text-base font-semibold">{nodeTitle}</h3>
           </div>
-          <button type="button" className="modal-close" onClick={onClose}>
+          <button type="button" className={modalCloseClass} onClick={onClose}>
             ✕
           </button>
         </div>
-        <div className="modal-body">
-          <p className="property-subtitle">{property.label}</p>
+        <div className={modalBodyClass}>
+          <p className="text-[#9aa4b2]">{property.label}</p>
           {property.type === NodePropertyType.textarea ? (
             <textarea
-              className="property-textarea"
+              className={`${inputClass} min-h-[140px] resize-y`}
               value={String(draftValue ?? "")}
               onChange={(event) => setDraftValue(event.target.value)}
             />
           ) : null}
           {property.type === NodePropertyType.inputNumber ? (
             <input
+              className={inputClass}
               type="number"
               value={draftValue === undefined || draftValue === null ? "" : Number(draftValue)}
               min={property.min}
@@ -97,7 +113,11 @@ export function PropertyEditModal({
             />
           ) : null}
           {property.type === NodePropertyType.select ? (
-            <select value={String(draftValue ?? "")} onChange={(e) => setDraftValue(e.target.value)}>
+            <select
+              className={inputClass}
+              value={String(draftValue ?? "")}
+              onChange={(e) => setDraftValue(e.target.value)}
+            >
               {(property.options ?? []).map((option) => (
                 <option key={String(option.value)} value={String(option.value)}>
                   {option.name}
@@ -106,7 +126,7 @@ export function PropertyEditModal({
             </select>
           ) : null}
           {property.type === NodePropertyType.switch ? (
-            <label className="property-switch">
+            <label className="inline-flex items-center gap-2 text-[13px] text-[#cbd2dd]">
               <input
                 type="checkbox"
                 checked={Boolean(draftValue)}
@@ -116,15 +136,18 @@ export function PropertyEditModal({
             </label>
           ) : null}
           {property.type === NodePropertyType.checkGroup ? (
-            <div className="property-check-group">
+            <div className="grid gap-2.5">
               {checkboxOptions.length === 0 ? (
-                <div className="form-empty">暂无选项</div>
+                <div className={formEmptyClass}>暂无选项</div>
               ) : (
                 checkboxOptions.map((option) => {
                   const values = Array.isArray(draftValue) ? draftValue.map(String) : [];
                   const checked = values.includes(option.value);
                   return (
-                    <label className="property-check-item" key={option.value}>
+                    <label
+                      className="flex items-center gap-2 text-[13px] text-[#cbd2dd]"
+                      key={option.value}
+                    >
                       <input
                         type="checkbox"
                         checked={checked}
@@ -146,11 +169,11 @@ export function PropertyEditModal({
             </div>
           ) : null}
         </div>
-        <div className="modal-actions">
-          <button type="button" className="ghost-button" onClick={onClose}>
+        <div className={modalActionsClass}>
+          <button type="button" className={ghostButtonClass} onClick={onClose}>
             取消
           </button>
-          <button type="button" className="primary-button" onClick={handleSave}>
+          <button type="button" className={primaryButtonClass} onClick={handleSave}>
             保存
           </button>
         </div>

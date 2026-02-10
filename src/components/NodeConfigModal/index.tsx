@@ -9,7 +9,6 @@ import {
 } from "../../services/api";
 import { NodePropertyType, useNodeStore } from "../../stores/nodeStore";
 import { useExecutorStore } from "../../stores/executorStore";
-import "./style.css";
 
 type NodeConfigModalProps = {
   isOpen: boolean;
@@ -55,6 +54,43 @@ const normalizePort = (port: NodePort): NodePort => ({
   name: port.name ?? "",
   label: port.label ?? port.name ?? "",
 });
+
+const modalOverlayClass =
+  "fixed inset-0 z-10 flex items-center justify-center bg-[rgba(8,10,15,0.72)]";
+const modalCardClass =
+  "flex max-h-[88vh] w-[min(720px,92vw)] flex-col overflow-hidden rounded-xl border border-[#2a2a2a] bg-[#333333] shadow-[0_24px_60px_rgba(0,0,0,0.45)]";
+const modalHeaderClass =
+  "flex items-center justify-between border-b border-[#2a2a2a] px-5 py-4";
+const modalCloseClass = "cursor-pointer bg-transparent text-base text-[#9aa4b2]";
+const modalBodyClass = "flex flex-col gap-4 overflow-y-scroll px-5 pb-5 pt-4";
+const formFieldClass = "flex flex-col gap-2 text-xs text-[#9aa4b2]";
+const formFieldCompactClass = "flex flex-col gap-1.5 text-[11px] text-[#9aa4b2]";
+const inputClass =
+  "w-full rounded-[10px] border border-[#1e2533] bg-[#0f131c] px-2.5 py-2 text-xs text-[#e6e9ef]";
+const formRowClass =
+  "grid grid-cols-[repeat(auto-fit,minmax(120px,1fr))] items-center gap-2.5";
+const formRowWithActionClass = "flex gap-2.5";
+const formSectionClass =
+  "flex flex-col gap-3 rounded-xl border border-[rgb(118,118,118)] p-3";
+const formSectionCompactClass =
+  "flex flex-col gap-2.5 rounded-xl border border-[#1a2130] bg-[#0f131c] p-2.5";
+const formEmptyClass = "text-xs text-[#707a88]";
+const formCardClass =
+  "flex flex-col gap-3 rounded-xl border border-[rgb(118,118,118)] p-3";
+const miniButtonGhostClass =
+  "min-h-8 cursor-pointer rounded-lg border border-[#2a3246] bg-transparent px-2.5 py-1.5 text-xs text-[#9aa4b2]";
+const miniButtonWithIconClass =
+  "min-h-8 cursor-pointer rounded-lg border border-[rgb(118,118,118)] bg-transparent px-2.5 py-1.5 text-xs text-[#d4dbe6]";
+const miniIconButtonClass =
+  "inline-flex h-5 w-5 flex-none items-center justify-center self-end border-0 bg-transparent p-0 text-[#ff5a5a]";
+const paramDeleteButtonClass =
+  "w-full justify-center text-[#ff5a5a]";
+const modalActionsClass = "mt-1 flex justify-end gap-2.5 px-5 pb-4";
+const ghostButtonClass =
+  "rounded-[10px] border border-[#2a3246] bg-transparent px-3.5 py-2 text-xs text-[#c8d0db]";
+const primaryButtonClass =
+  "rounded-[10px] bg-[#3b68ff] px-3.5 py-2 text-xs text-[#f3f6ff]";
+const requireCheckboxClass = "flex items-center gap-2 self-end pb-1 text-xs text-[#9aa4b2]";
 
 export function NodeConfigModal({
   isOpen,
@@ -185,22 +221,30 @@ export function NodeConfigModal({
   };
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-card">
-        <div className="modal-header">
-          <h3>{editingNodeId ? "编辑节点" : "新增节点"}</h3>
-          <button type="button" className="modal-close" onClick={onClose}>
+    <div className={modalOverlayClass}>
+      <div className={modalCardClass}>
+        <div className={modalHeaderClass}>
+          <h3 className="text-base font-semibold">{editingNodeId ? "编辑节点" : "新增节点"}</h3>
+          <button type="button" className={modalCloseClass} onClick={onClose}>
             ✕
           </button>
         </div>
-        <form className="modal-body" onSubmit={handleCreateNodeSubmit}>
-          <label className="form-field">
+        <form className={modalBodyClass} onSubmit={handleCreateNodeSubmit}>
+          <label className={formFieldClass}>
             <span>节点名称</span>
-            <input value={nodeName} onChange={(e) => setNodeName(e.target.value)} />
+            <input
+              className={inputClass}
+              value={nodeName}
+              onChange={(e) => setNodeName(e.target.value)}
+            />
           </label>
-          <label className="form-field">
+          <label className={formFieldClass}>
             <span>目录（目前没啥用但强烈建议使用）</span>
-            <select value={nodeCategory} onChange={(e) => setNodeCategory(e.target.value)}>
+            <select
+              className={inputClass}
+              value={nodeCategory}
+              onChange={(e) => setNodeCategory(e.target.value)}
+            >
               {categoryOptions.map((category) => (
                 <option value={category} key={category}>
                   {category}
@@ -212,21 +256,22 @@ export function NodeConfigModal({
             </select>
           </label>
 
-          <section className="form-section">
-            <header>
+          <section className={formSectionClass}>
+            <header className="flex items-center justify-between text-[13px] text-[#c8d0db]">
               <span>输入</span>
             </header>
             {inputs.length === 0 ? (
-              <div className="form-empty">暂无输入</div>
+              <div className={formEmptyClass}>暂无输入</div>
             ) : (
               inputs.map((input, index) => {
                 const shouldShowOptions = input.type === "select";
                 return (
-                  <div className="form-card" key={`input-${index}`}>
-                    <div className="form-row form-row-with-action">
-                      <div className="form-field compact">
+                  <div className={formCardClass} key={`input-${index}`}>
+                    <div className={formRowWithActionClass}>
+                      <div className={`${formFieldCompactClass} flex-1 min-w-0`}>
                         <span>标签</span>
                         <input
+                          className={inputClass}
                           value={input.label ?? ""}
                           onChange={(e) =>
                             setInputs((prev) =>
@@ -237,9 +282,10 @@ export function NodeConfigModal({
                           }
                         />
                       </div>
-                      <div className="form-field compact">
+                      <div className={`${formFieldCompactClass} flex-1 min-w-0`}>
                         <span>名称</span>
                         <input
+                          className={inputClass}
                           value={input.name}
                           onChange={(e) =>
                             setInputs((prev) =>
@@ -250,9 +296,10 @@ export function NodeConfigModal({
                           }
                         />
                       </div>
-                      <div className="form-field compact">
+                      <div className={`${formFieldCompactClass} flex-1 min-w-0`}>
                         <span>类型</span>
                         <select
+                          className={inputClass}
                           value={input.type}
                           onChange={(e) =>
                             setInputs((prev) =>
@@ -271,7 +318,7 @@ export function NodeConfigModal({
                           <option value="number">number</option>
                         </select>
                       </div>
-                      <div className="require-checkbox">
+                      <div className={requireCheckboxClass}>
                         <input
                           type="checkbox"
                           checked={Boolean(input.required)}
@@ -287,17 +334,18 @@ export function NodeConfigModal({
                       </div>
                       <button
                         type="button"
-                        className="mini-button ghost mini-icon-button"
+                        className={`${miniButtonGhostClass} ${miniIconButtonClass}`}
                         onClick={() => setInputs((prev) => prev.filter((_, idx) => idx !== index))}
                       >
-                        <FaTrashCan aria-hidden="true" />
+                        <FaTrashCan aria-hidden="true" className="h-3.5 w-3.5" />
                       </button>
                     </div>
                     {input.type === "number" ? (
-                      <div className="form-row">
-                        <div className="form-field compact">
+                      <div className={formRowClass}>
+                        <div className={formFieldCompactClass}>
                           <span>最小值</span>
                           <input
+                            className={inputClass}
                             type="number"
                             value={input.min ?? ""}
                             onChange={(e) => {
@@ -314,9 +362,10 @@ export function NodeConfigModal({
                             }}
                           />
                         </div>
-                        <div className="form-field compact">
+                        <div className={formFieldCompactClass}>
                           <span>最大值</span>
                           <input
+                            className={inputClass}
                             type="number"
                             value={input.max ?? ""}
                             onChange={(e) => {
@@ -336,10 +385,11 @@ export function NodeConfigModal({
                       </div>
                     ) : null}
                     {input.type === "images" ? (
-                      <div className="form-row">
-                        <div className="form-field compact">
+                      <div className={formRowClass}>
+                        <div className={formFieldCompactClass}>
                           <span>最多数量</span>
                           <input
+                            className={inputClass}
                             type="number"
                             value={input.max ?? ""}
                             onChange={(e) => {
@@ -359,21 +409,22 @@ export function NodeConfigModal({
                       </div>
                     ) : null}
                     {shouldShowOptions ? (
-                      <div className="form-section compact">
-                        <header>
+                      <div className={formSectionCompactClass}>
+                        <header className="flex items-center justify-between text-[13px] text-[#c8d0db]">
                           <span>选项</span>
                         </header>
                         {(input.options ?? []).length === 0 ? (
-                          <div className="form-empty">暂无选项</div>
+                          <div className={formEmptyClass}>暂无选项</div>
                         ) : (
                           (input.options ?? []).map((option, optionIndex) => (
                             <div
-                              className="form-row form-row-with-action"
+                              className={formRowWithActionClass}
                               key={`input-option-${index}-${optionIndex}`}
                             >
-                              <div className="form-field compact">
+                              <div className={`${formFieldCompactClass} flex-1 min-w-0`}>
                                 <span>标签</span>
                                 <input
+                                  className={inputClass}
                                   value={option.label}
                                   onChange={(e) =>
                                     setInputs((prev) =>
@@ -393,9 +444,10 @@ export function NodeConfigModal({
                                   }
                                 />
                               </div>
-                              <div className="form-field compact">
+                              <div className={`${formFieldCompactClass} flex-1 min-w-0`}>
                                 <span>值</span>
                                 <input
+                                  className={inputClass}
                                   value={option.value}
                                   onChange={(e) =>
                                     setInputs((prev) =>
@@ -417,7 +469,7 @@ export function NodeConfigModal({
                               </div>
                               <button
                                 type="button"
-                                className="mini-button ghost mini-icon-button option-delete-button"
+                                className={`${miniButtonGhostClass} ${miniIconButtonClass}`}
                                 onClick={() =>
                                   setInputs((prev) =>
                                     prev.map((item, idx) =>
@@ -433,14 +485,14 @@ export function NodeConfigModal({
                                   )
                                 }
                               >
-                                <FaTrashCan aria-hidden="true" />
+                                <FaTrashCan aria-hidden="true" className="h-3.5 w-3.5" />
                               </button>
                             </div>
                           ))
                         )}
                         <button
                           type="button"
-                          className="mini-button with-icon"
+                          className={miniButtonWithIconClass}
                           onClick={() =>
                             setInputs((prev) =>
                               prev.map((item, idx) =>
@@ -454,18 +506,19 @@ export function NodeConfigModal({
                             )
                           }
                         >
-                          <p>
-                            <IoMdAddCircleOutline aria-hidden="true" />
+                          <p className="flex items-center gap-2">
+                            <IoMdAddCircleOutline aria-hidden="true" className="h-3.5 w-3.5" />
                             添加选项
                           </p>
                         </button>
                       </div>
                     ) : null}
                     {input.type === "select" ? (
-                      <div className="form-row">
-                        <div className="form-field compact">
+                      <div className={formRowClass}>
+                        <div className={formFieldCompactClass}>
                           <span>最多选择</span>
                           <input
+                            className={inputClass}
                             type="number"
                             value={input.max ?? ""}
                             onChange={(e) => {
@@ -490,7 +543,7 @@ export function NodeConfigModal({
             )}
             <button
               type="button"
-              className="mini-button with-icon"
+              className={miniButtonWithIconClass}
               onClick={() =>
                 setInputs((prev) => [
                   ...prev,
@@ -498,25 +551,26 @@ export function NodeConfigModal({
                 ])
               }
             >
-              <p>
-                <IoMdAddCircleOutline aria-hidden="true" />
+              <p className="flex items-center gap-2">
+                <IoMdAddCircleOutline aria-hidden="true" className="h-3.5 w-3.5" />
                 添加输入
               </p>
             </button>
           </section>
 
-          <section className="form-section">
-            <header>
+          <section className={formSectionClass}>
+            <header className="flex items-center justify-between text-[13px] text-[#c8d0db]">
               <span>输出</span>
             </header>
             {outputs.length === 0 ? (
-              <div className="form-empty">暂无输出</div>
+              <div className={formEmptyClass}>暂无输出</div>
             ) : (
               outputs.map((output, index) => (
-                <div className="form-row form-row-with-action" key={`output-${index}`}>
-                  <div className="form-field compact">
+                <div className={formRowWithActionClass} key={`output-${index}`}>
+                  <div className={`${formFieldCompactClass} flex-1 min-w-0`}>
                     <span>标签</span>
                     <input
+                      className={inputClass}
                       value={output.label ?? ""}
                       onChange={(e) =>
                         setOutputs((prev) =>
@@ -527,9 +581,10 @@ export function NodeConfigModal({
                       }
                     />
                   </div>
-                  <div className="form-field compact">
+                  <div className={`${formFieldCompactClass} flex-1 min-w-0`}>
                     <span>名称</span>
                     <input
+                      className={inputClass}
                       value={output.name}
                       onChange={(e) =>
                         setOutputs((prev) =>
@@ -540,9 +595,10 @@ export function NodeConfigModal({
                       }
                     />
                   </div>
-                  <div className="form-field compact">
+                  <div className={`${formFieldCompactClass} flex-1 min-w-0`}>
                     <span>类型</span>
                     <select
+                      className={inputClass}
                       value={output.type}
                       onChange={(e) =>
                         setOutputs((prev) =>
@@ -562,41 +618,42 @@ export function NodeConfigModal({
                   </div>
                   <button
                     type="button"
-                    className="mini-button ghost mini-icon-button"
+                    className={`${miniButtonGhostClass} ${miniIconButtonClass}`}
                     onClick={() => setOutputs((prev) => prev.filter((_, idx) => idx !== index))}
                   >
-                    <FaTrashCan aria-hidden="true" />
+                    <FaTrashCan aria-hidden="true" className="h-3.5 w-3.5" />
                   </button>
                 </div>
               ))
             )}
             <button
               type="button"
-              className="mini-button with-icon"
+              className={miniButtonWithIconClass}
               onClick={() =>
                 setOutputs((prev) => [...prev, { label: "", name: "", type: "string" }])
               }
             >
-              <p>
-                <IoMdAddCircleOutline aria-hidden="true" />
+              <p className="flex items-center gap-2">
+                <IoMdAddCircleOutline aria-hidden="true" className="h-3.5 w-3.5" />
                 添加输出
               </p>
             </button>
           </section>
 
-          <section className="form-section">
-            <header>
+          <section className={formSectionClass}>
+            <header className="flex items-center justify-between text-[13px] text-[#c8d0db]">
               <span>参数</span>
             </header>
             {properties.length === 0 ? (
-              <div className="form-empty">暂无参数</div>
+              <div className={formEmptyClass}>暂无参数</div>
             ) : (
               properties.map((prop, index) => (
-                <div className="form-card" key={`prop-${index}`}>
-                  <div className="form-row">
-                    <div className="form-field compact">
+                <div className={formCardClass} key={`prop-${index}`}>
+                  <div className={formRowClass}>
+                    <div className={formFieldCompactClass}>
                       <span>标签</span>
                       <input
+                        className={inputClass}
                         value={prop.label}
                         onChange={(e) =>
                           setProperties((prev) =>
@@ -607,9 +664,10 @@ export function NodeConfigModal({
                         }
                       />
                     </div>
-                    <div className="form-field compact">
+                    <div className={formFieldCompactClass}>
                       <span>名称</span>
                       <input
+                        className={inputClass}
                         value={prop.name}
                         onChange={(e) =>
                           setProperties((prev) =>
@@ -620,9 +678,10 @@ export function NodeConfigModal({
                         }
                       />
                     </div>
-                    <div className="form-field compact">
+                    <div className={formFieldCompactClass}>
                       <span>类型</span>
                       <select
+                        className={inputClass}
                         value={prop.type}
                         onChange={(e) =>
                           setProperties((prev) =>
@@ -642,11 +701,12 @@ export function NodeConfigModal({
                       </select>
                     </div>
                   </div>
-                  <div className="form-row">
+                  <div className={formRowClass}>
                     {prop.type === NodePropertyType.switch ? (
-                      <div className="form-field compact">
+                      <div className={formFieldCompactClass}>
                         <span>默认值</span>
                         <select
+                          className={inputClass}
                           value={prop.default}
                           onChange={(e) =>
                             setProperties((prev) =>
@@ -661,13 +721,14 @@ export function NodeConfigModal({
                         </select>
                       </div>
                     ) : (
-                      <div className="form-field compact">
+                      <div className={formFieldCompactClass}>
                         <span>
                           {prop.type === NodePropertyType.checkGroup
                             ? "默认值（逗号分隔）"
                             : "默认值"}
                         </span>
                         <input
+                          className={inputClass}
                           type={prop.type === NodePropertyType.inputNumber ? "number" : "text"}
                           value={String(prop.default ?? "")}
                           onChange={(e) =>
@@ -682,9 +743,10 @@ export function NodeConfigModal({
                     )}
                     {prop.type === NodePropertyType.inputNumber ? (
                       <>
-                        <div className="form-field compact">
+                        <div className={formFieldCompactClass}>
                           <span>最小值</span>
                           <input
+                            className={inputClass}
                             type="number"
                             value={prop.min ?? ""}
                             onChange={(e) =>
@@ -701,9 +763,10 @@ export function NodeConfigModal({
                             }
                           />
                         </div>
-                        <div className="form-field compact">
+                        <div className={formFieldCompactClass}>
                           <span>最大值</span>
                           <input
+                            className={inputClass}
                             type="number"
                             value={prop.max ?? ""}
                             onChange={(e) =>
@@ -725,21 +788,22 @@ export function NodeConfigModal({
                   </div>
                   {prop.type === NodePropertyType.select ||
                   prop.type === NodePropertyType.checkGroup ? (
-                    <div className="form-section compact">
-                      <header>
+                    <div className={formSectionCompactClass}>
+                      <header className="flex items-center justify-between text-[13px] text-[#c8d0db]">
                         <span>选项</span>
                       </header>
                       {(prop.options ?? []).length === 0 ? (
-                        <div className="form-empty">暂无选项</div>
+                        <div className={formEmptyClass}>暂无选项</div>
                       ) : (
                         (prop.options ?? []).map((option, optionIndex) => (
                           <div
-                            className="form-row form-row-with-action"
+                            className={formRowWithActionClass}
                             key={`prop-option-${index}-${optionIndex}`}
                           >
-                            <div className="form-field compact">
+                            <div className={`${formFieldCompactClass} flex-1 min-w-0`}>
                               <span>名称</span>
                               <input
+                                className={inputClass}
                                 value={option.name}
                                 onChange={(e) =>
                                   setProperties((prev) =>
@@ -759,9 +823,10 @@ export function NodeConfigModal({
                                 }
                               />
                             </div>
-                            <div className="form-field compact">
+                            <div className={`${formFieldCompactClass} flex-1 min-w-0`}>
                               <span>值</span>
                               <input
+                                className={inputClass}
                                 value={option.value}
                                 onChange={(e) =>
                                   setProperties((prev) =>
@@ -783,7 +848,7 @@ export function NodeConfigModal({
                             </div>
                             <button
                               type="button"
-                              className="mini-button ghost mini-icon-button option-delete-button"
+                              className={`${miniButtonGhostClass} ${miniIconButtonClass}`}
                               onClick={() =>
                                 setProperties((prev) =>
                                   prev.map((item, idx) =>
@@ -799,14 +864,14 @@ export function NodeConfigModal({
                                 )
                               }
                             >
-                              <FaTrashCan aria-hidden="true" />
+                              <FaTrashCan aria-hidden="true" className="h-3.5 w-3.5" />
                             </button>
                           </div>
                         ))
                       )}
                       <button
                         type="button"
-                        className="mini-button with-icon"
+                        className={miniButtonWithIconClass}
                         onClick={() =>
                           setProperties((prev) =>
                             prev.map((item, idx) =>
@@ -820,8 +885,8 @@ export function NodeConfigModal({
                           )
                         }
                       >
-                        <p>
-                          <IoMdAddCircleOutline aria-hidden="true" />
+                        <p className="flex items-center gap-2">
+                          <IoMdAddCircleOutline aria-hidden="true" className="h-3.5 w-3.5" />
                           添加选项
                         </p>
                       </button>
@@ -829,11 +894,11 @@ export function NodeConfigModal({
                   ) : null}
                   <button
                     type="button"
-                    className="mini-button with-icon ghost param-delete-button"
+                    className={`${miniButtonGhostClass} ${paramDeleteButtonClass}`}
                     onClick={() => setProperties((prev) => prev.filter((_, idx) => idx !== index))}
                   >
-                    <p>
-                      <FaTrashCan aria-hidden="true" />
+                    <p className="flex items-center justify-center gap-2">
+                      <FaTrashCan aria-hidden="true" className="h-3.5 w-3.5" />
                       删除
                     </p>
                   </button>
@@ -842,7 +907,7 @@ export function NodeConfigModal({
             )}
             <button
               type="button"
-              className="mini-button with-icon"
+              className={miniButtonWithIconClass}
               onClick={() =>
                 setProperties((prev) => [
                   ...prev,
@@ -856,16 +921,17 @@ export function NodeConfigModal({
                 ])
               }
             >
-              <p>
-                <IoMdAddCircleOutline aria-hidden="true" />
+              <p className="flex items-center gap-2">
+                <IoMdAddCircleOutline aria-hidden="true" className="h-3.5 w-3.5" />
                 添加参数
               </p>
             </button>
           </section>
 
-          <label className="form-field">
+          <label className={formFieldClass}>
             <span>执行器ID</span>
             <select
+              className={inputClass}
               value={executionId}
               onChange={(e) => setExecutionId(e.target.value)}
               disabled={executors.length === 0}
@@ -882,11 +948,11 @@ export function NodeConfigModal({
             </select>
           </label>
 
-          <div className="modal-actions">
-            <button type="button" className="ghost-button" onClick={onClose}>
+          <div className={modalActionsClass}>
+            <button type="button" className={ghostButtonClass} onClick={onClose}>
               取消
             </button>
-            <button type="submit" className="primary-button">
+            <button type="submit" className={primaryButtonClass}>
               保存
             </button>
           </div>

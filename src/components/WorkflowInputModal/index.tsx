@@ -2,8 +2,35 @@ import type { ChangeEvent, FormEvent } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { InputForm } from "../../types/workflow";
 import type { WorkflowInputModalProps } from "./useWorkflowInputModal";
-import "../NodeConfigModal/style.css";
-import "./style.css";
+const modalOverlayClass =
+  "fixed inset-0 z-10 flex items-center justify-center bg-[rgba(8,10,15,0.72)]";
+const modalCardClass =
+  "flex max-h-[88vh] w-[min(560px,92vw)] flex-col overflow-hidden rounded-xl border border-[#2a2a2a] bg-[#333333] shadow-[0_24px_60px_rgba(0,0,0,0.45)]";
+const modalHeaderClass =
+  "flex items-center justify-between border-b border-[#2a2a2a] px-5 py-4";
+const modalCloseClass = "cursor-pointer bg-transparent text-base text-[#9aa4b2]";
+const modalBodyClass = "flex flex-col gap-4 overflow-y-scroll px-5 pb-5 pt-4";
+const modalActionsClass = "mt-1 flex justify-end gap-2.5 px-5 pb-4";
+const ghostButtonClass =
+  "rounded-[10px] border border-[#2a3246] bg-transparent px-3.5 py-2 text-xs text-[#c8d0db]";
+const primaryButtonClass =
+  "rounded-[10px] bg-[#3b68ff] px-3.5 py-2 text-xs text-[#f3f6ff]";
+const inputClass =
+  "w-full rounded-[10px] border border-[#1e2533] bg-[#0f131c] px-2.5 py-2 text-xs text-[#e6e9ef]";
+const formFieldClass = "flex flex-col gap-2 text-xs text-[#9aa4b2]";
+const formEmptyClass = "text-xs text-[#707a88]";
+const formErrorClass = "mt-1.5 text-xs text-[#ff5a5a]";
+const fieldLabelClass = "flex items-center gap-1.5";
+const fieldTipClass = "text-xs text-[#9aa4b2]";
+const requiredStarClass = "text-[#ff5a5a] not-italic";
+const imageInputClass = "flex flex-col gap-2";
+const imageListClass = "flex flex-col gap-2";
+const imageItemClass = "flex items-center gap-2";
+const linkButtonClass =
+  "cursor-pointer bg-transparent p-0 text-xs text-[#6aa9ff] underline";
+const checkboxGroupClass = "flex flex-col gap-1.5";
+const checkboxItemClass = "flex items-center gap-1.5 text-xs text-[#c8d0db]";
+const formSectionClass = "flex flex-col gap-3";
 
 const getFieldKey = (formIndex: number, inputName: string) => `${formIndex}:${inputName}`;
 const getFieldFileKey = (formIndex: number, inputName: string) =>
@@ -49,8 +76,9 @@ function UploadImages({ values = [], fileNames = [], required, max, onChange }: 
   );
 
   return (
-    <div className="workflow-image-input">
+    <div className={imageInputClass}>
       <input
+        className={inputClass}
         type="file"
         accept="image/*"
         multiple
@@ -58,19 +86,19 @@ function UploadImages({ values = [], fileNames = [], required, max, onChange }: 
         aria-required={required}
       />
       {values.length > 0 ? (
-        <div className="workflow-image-list">
+        <div className={imageListClass}>
           {values.map((item, index) => (
-            <div key={`${item}-${index}`} className="workflow-image-item">
+            <div key={`${item}-${index}`} className={imageItemClass}>
               <button
                 type="button"
-                className="link-button"
+                className={linkButtonClass}
                 onClick={() => window.open(item, "_blank")}
               >
                 {fileNames[index] || `图片 ${index + 1}`}
               </button>
               <button
                 type="button"
-                className="ghost-button"
+                className={ghostButtonClass}
                 onClick={() => {
                   const nextValues = values.filter((_, i) => i !== index);
                   const nextNames = fileNames.filter((_, i) => i !== index);
@@ -128,7 +156,7 @@ export function WorkflowInputModal({
       const inputType = input.type;
       const selectionOptions = inputType === "select" ? getSelectionOptions(input) : [];
       const selectionMax = inputType === "select" ? input.max : undefined;
-      const renderError = errors[key] ? <span className="form-error">{errors[key]}</span> : null;
+      const renderError = errors[key] ? <span className={formErrorClass}>{errors[key]}</span> : null;
 
       switch (inputType) {
         case "images": {
@@ -136,11 +164,11 @@ export function WorkflowInputModal({
           const listNames = (fileNames[getFieldFileKey(formIndex, input.name)] ??
             []) as string[];
           return (
-            <div className="form-field" key={key}>
-              <div className="workflow-field-label">
+            <div className={formFieldClass} key={key}>
+              <div className={fieldLabelClass}>
                 <span>{label}</span>
-                {input.required ? <em className="required-star">*</em> : null}
-                {input.max ? <span className="workflow-field-tip">最多 {input.max} 张</span> : null}
+                {input.required ? <em className={requiredStarClass}>*</em> : null}
+                {input.max ? <span className={fieldTipClass}>最多 {input.max} 张</span> : null}
               </div>
               <UploadImages
                 values={listValues}
@@ -162,13 +190,14 @@ export function WorkflowInputModal({
         }
         case "object":
           return (
-            <div className="form-field" key={key}>
-              <label className="workflow-field-label" htmlFor={getFieldDomId(formIndex, input.name)}>
+            <div className={formFieldClass} key={key}>
+              <label className={fieldLabelClass} htmlFor={getFieldDomId(formIndex, input.name)}>
                 {label}
-                {input.required ? <em className="required-star">*</em> : null}
+                {input.required ? <em className={requiredStarClass}>*</em> : null}
               </label>
               <textarea
                 id={getFieldDomId(formIndex, input.name)}
+                className={inputClass}
                 rows={6}
                 value={values[key] ?? ""}
                 onChange={(event) =>
@@ -180,13 +209,14 @@ export function WorkflowInputModal({
           );
         case "number":
           return (
-            <div className="form-field" key={key}>
-              <label className="workflow-field-label" htmlFor={getFieldDomId(formIndex, input.name)}>
+            <div className={formFieldClass} key={key}>
+              <label className={fieldLabelClass} htmlFor={getFieldDomId(formIndex, input.name)}>
                 {label}
-                {input.required ? <em className="required-star">*</em> : null}
+                {input.required ? <em className={requiredStarClass}>*</em> : null}
               </label>
               <input
                 id={getFieldDomId(formIndex, input.name)}
+                className={inputClass}
                 type="number"
                 min={(input as any).min}
                 max={(input as any).max}
@@ -202,25 +232,26 @@ export function WorkflowInputModal({
         case "select": {
           if (selectionOptions.length === 0) {
             return (
-              <div className="form-field" key={key}>
-                <div className="workflow-field-label">
+              <div className={formFieldClass} key={key}>
+                <div className={fieldLabelClass}>
                   <span>{label}</span>
-                  {input.required ? <em className="required-star">*</em> : null}
+                  {input.required ? <em className={requiredStarClass}>*</em> : null}
                 </div>
-                <div className="form-empty">暂无选项</div>
+                <div className={formEmptyClass}>暂无选项</div>
                 {renderError}
               </div>
             );
           }
           if (selectionMax === 1) {
             return (
-              <div className="form-field" key={key}>
-                <label className="workflow-field-label" htmlFor={getFieldDomId(formIndex, input.name)}>
+              <div className={formFieldClass} key={key}>
+                <label className={fieldLabelClass} htmlFor={getFieldDomId(formIndex, input.name)}>
                   {label}
-                  {input.required ? <em className="required-star">*</em> : null}
+                  {input.required ? <em className={requiredStarClass}>*</em> : null}
                 </label>
                 <select
                   id={getFieldDomId(formIndex, input.name)}
+                  className={inputClass}
                   value={(values[key] as string | undefined) ?? ""}
                   onChange={(event) =>
                     setValues((prev) => ({ ...prev, [key]: event.target.value }))
@@ -238,22 +269,22 @@ export function WorkflowInputModal({
             );
           }
           return (
-            <div className="form-field" key={key}>
-              <div className="workflow-field-label">
+            <div className={formFieldClass} key={key}>
+              <div className={fieldLabelClass}>
                 <span>{label}</span>
-                {input.required ? <em className="required-star">*</em> : null}
+                {input.required ? <em className={requiredStarClass}>*</em> : null}
                 {selectionMax ? (
-                  <span className="workflow-field-tip">最多 {selectionMax} 项</span>
+                  <span className={fieldTipClass}>最多 {selectionMax} 项</span>
                 ) : null}
               </div>
-              <div className="workflow-checkbox-group">
+              <div className={checkboxGroupClass}>
                 {selectionOptions.map((option) => {
                   const checked = Array.isArray(values[key])
                     ? values[key].includes(option.value)
                     : false;
                   const optionId = `${getFieldDomId(formIndex, input.name)}-${option.value}`;
                   return (
-                    <div key={option.value} className="workflow-checkbox-item">
+                    <div key={option.value} className={checkboxItemClass}>
                       <input
                         id={optionId}
                         type="checkbox"
@@ -290,13 +321,14 @@ export function WorkflowInputModal({
         }
         default:
           return (
-            <div className="form-field" key={key}>
-              <label className="workflow-field-label" htmlFor={getFieldDomId(formIndex, input.name)}>
+            <div className={formFieldClass} key={key}>
+              <label className={fieldLabelClass} htmlFor={getFieldDomId(formIndex, input.name)}>
                 {label}
-                {input.required ? <em className="required-star">*</em> : null}
+                {input.required ? <em className={requiredStarClass}>*</em> : null}
               </label>
               <input
                 id={getFieldDomId(formIndex, input.name)}
+                className={inputClass}
                 value={values[key] ?? ""}
                 onChange={(event) =>
                   setValues((prev) => ({ ...prev, [key]: event.target.value }))
@@ -392,24 +424,24 @@ export function WorkflowInputModal({
   };
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-card workflow-input-modal">
-        <div className="modal-header">
+    <div className={modalOverlayClass}>
+      <div className={modalCardClass}>
+        <div className={modalHeaderClass}>
           <div>
-            <h3>{nodeName || "节点输入"}</h3>
+            <h3 className="text-base font-semibold">{nodeName || "节点输入"}</h3>
           </div>
-          <button type="button" className="modal-close" onClick={onClose}>
+          <button type="button" className={modalCloseClass} onClick={onClose}>
             ✕
           </button>
         </div>
-        <form className="modal-body" onSubmit={handleSubmit}>
+        <form className={modalBodyClass} onSubmit={handleSubmit}>
           {fields.length === 0 ? (
-            <div className="form-empty">暂无输入字段</div>
+            <div className={formEmptyClass}>暂无输入字段</div>
           ) : (
             fields.map((form, formIndex) => (
-              <section key={`form-${formIndex}`} className="workflow-input-form-section">
+              <section key={`form-${formIndex}`} className={formSectionClass}>
                 {form.length === 0 ? (
-                  <div className="form-empty">暂无输入字段</div>
+                  <div className={formEmptyClass}>暂无输入字段</div>
                 ) : (
                   form.map(({ input, key }) =>
                     renderField({ input, key, formIndex })
@@ -418,11 +450,11 @@ export function WorkflowInputModal({
               </section>
             ))
           )}
-          <div className="modal-actions">
-            <button type="button" className="ghost-button" onClick={onClose}>
+          <div className={modalActionsClass}>
+            <button type="button" className={ghostButtonClass} onClick={onClose}>
               取消
             </button>
-            <button type="submit" className="primary-button">
+            <button type="submit" className={primaryButtonClass}>
               提交
             </button>
           </div>

@@ -12,7 +12,6 @@ import {
   getGraphNameFromFile,
   readGraphConfigFile,
 } from "../../utils/graphConfig";
-import "./style.css";
 
 type SidebarProps = {
   onAddNode: (nodeId: number) => void;
@@ -75,26 +74,30 @@ export function Sidebar({ onAddNode, onOpenCreateNode, onImportGraph, disabled }
   }, []);
 
   return (
-    <aside className="sidebar">
-      <nav className="sidebar-nav">
-        <div className="nav-item-group" ref={editGroupRef}>
+    <aside className="relative flex w-12 flex-col items-center gap-3 border-r border-[#2a2a2a] bg-[#0b0d12] px-2.5 py-4">
+      <nav className="flex w-full flex-col items-center gap-3">
+        <div className="relative flex w-full justify-center" ref={editGroupRef}>
           <button
-            className={`nav-item ${isEditOpen ? "is-open" : ""}`}
+            className={`group relative inline-flex h-11 w-11 items-center justify-center rounded-xl border border-transparent bg-[#333333] text-[#c8d0db] transition-all ${
+              isEditOpen ? "border-[#283044] bg-[#1a2030] text-[#e6e9ef]" : "hover:border-[#283044] hover:bg-[#1a2030] hover:text-[#e6e9ef]"
+            }`}
             type="button"
             onClick={() => setIsEditOpen((prev) => !prev)}
           >
-            <FiEdit3 />
-            <span className="nav-label">编辑</span>
+            <FiEdit3 className="h-5 w-5" />
+            <span className="pointer-events-none absolute left-[54px] top-1/2 -translate-y-1/2 -translate-x-1.5 whitespace-nowrap rounded-lg bg-[#141a28] px-2.5 py-1.5 text-xs text-[#e6e9ef] opacity-0 shadow-[0_6px_18px_rgba(0,0,0,0.4)] transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100">
+              编辑
+            </span>
           </button>
           {isEditOpen ? (
-            <div className="nav-submenu">
+            <div className="absolute left-14 top-0 z-[2] min-w-[160px] rounded-xl border border-[#2a2a2a] bg-[#333333] p-2 text-center text-xs text-[#9aa4b2]">
               <button
-                className="nav-submenu-item"
+                className="inline-flex w-full items-center gap-2 rounded-lg bg-transparent px-2 py-1.5 text-left text-inherit transition-colors hover:bg-[#1a2030] hover:text-[#e6e9ef] disabled:cursor-not-allowed disabled:opacity-50"
                 type="button"
                 onClick={handleImportClick}
                 disabled={disabled}
               >
-                <FiArrowRightCircle className="nav-submenu-icon" />
+                <FiArrowRightCircle className="h-3.5 w-3.5" />
                 导入
               </button>
               <input
@@ -105,43 +108,49 @@ export function Sidebar({ onAddNode, onOpenCreateNode, onImportGraph, disabled }
                 onChange={handleFileChange}
               />
               <button
-                className="nav-submenu-item"
+                className="inline-flex w-full items-center gap-2 rounded-lg bg-transparent px-2 py-1.5 text-left text-inherit transition-colors hover:bg-[#1a2030] hover:text-[#e6e9ef]"
                 type="button"
                 onClick={handleExportClick}
               >
-                <FiDownload className="nav-submenu-icon" />
+                <FiDownload className="h-3.5 w-3.5" />
                 导出
               </button>
             </div>
           ) : null}
         </div>
-        <div className="nav-item-group" ref={libraryGroupRef}>
+        <div className="relative flex w-full justify-center" ref={libraryGroupRef}>
           <button
-            className={`nav-item ${isLibraryOpen ? "is-open" : ""}`}
+            className={`group relative inline-flex h-11 w-11 items-center justify-center rounded-xl border border-transparent bg-[#333333] text-[#c8d0db] transition-all ${
+              isLibraryOpen
+                ? "border-[#283044] bg-[#1a2030] text-[#e6e9ef]"
+                : "hover:border-[#283044] hover:bg-[#1a2030] hover:text-[#e6e9ef]"
+            }`}
             type="button"
             onClick={() => setIsLibraryOpen((prev) => !prev)}
           >
-            <FaShareNodes />
-            <span className="nav-label">节点库</span>
+            <FaShareNodes className="h-5 w-5" />
+            <span className="pointer-events-none absolute left-[54px] top-1/2 -translate-y-1/2 -translate-x-1.5 whitespace-nowrap rounded-lg bg-[#141a28] px-2.5 py-1.5 text-xs text-[#e6e9ef] opacity-0 shadow-[0_6px_18px_rgba(0,0,0,0.4)] transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100">
+              节点库
+            </span>
           </button>
           {isLibraryOpen ? (
-            <div className="nav-submenu">
+            <div className="absolute left-14 top-0 z-[2] min-w-[160px] rounded-xl border border-[#2a2a2a] bg-[#333333] p-2 text-center text-xs text-[#9aa4b2]">
               <button
-                className="nav-submenu-item"
+                className="inline-flex w-full items-center gap-2 rounded-lg bg-transparent px-2 py-1.5 text-left text-inherit transition-colors hover:bg-[#1a2030] hover:text-[#e6e9ef] disabled:cursor-not-allowed disabled:opacity-50"
                 type="button"
                 onClick={onOpenCreateNode}
                 disabled={disabled}
               >
-                <FiPlus className="nav-submenu-icon" />
+                <FiPlus className="h-3.5 w-3.5" />
                 新增节点
               </button>
-              <div className="nav-divider"></div>
+              <div className="my-2 h-px w-full bg-[rgb(118,118,118)]"></div>
               {nodeLibrary.length === 0 ? (
-                <div className="nav-empty">暂无内容</div>
+                <div className="py-1.5">暂无内容</div>
               ) : (
                 nodeLibrary.map((node) => (
                   <button
-                    className="nav-submenu-item"
+                    className="inline-flex w-full items-center gap-2 rounded-lg bg-transparent px-2 py-1.5 text-left text-inherit transition-colors hover:bg-[#1a2030] hover:text-[#e6e9ef] disabled:cursor-not-allowed disabled:opacity-50"
                     key={node.id}
                     type="button"
                     onClick={() => onAddNode(node.id)}
@@ -156,17 +165,19 @@ export function Sidebar({ onAddNode, onOpenCreateNode, onImportGraph, disabled }
         </div>
       </nav>
       {import.meta.env.DEV ? (
-        <div className="sidebar-footer">
+        <div className="mt-auto flex w-full justify-center">
           <button
-            className="nav-item"
+            className="group relative inline-flex h-11 w-11 items-center justify-center rounded-xl border border-transparent bg-[#333333] text-[#c8d0db] transition-all hover:border-[#283044] hover:bg-[#1a2030] hover:text-[#e6e9ef]"
             type="button"
             aria-label="导出节点库"
             onClick={() => {
               void exportNodeDefinitionsAsJson();
             }}
           >
-            <FiDownload />
-            <span className="nav-label">导出节点库</span>
+            <FiDownload className="h-5 w-5" />
+            <span className="pointer-events-none absolute left-[54px] top-1/2 -translate-y-1/2 -translate-x-1.5 whitespace-nowrap rounded-lg bg-[#141a28] px-2.5 py-1.5 text-xs text-[#e6e9ef] opacity-0 shadow-[0_6px_18px_rgba(0,0,0,0.4)] transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100">
+              导出节点库
+            </span>
           </button>
         </div>
       ) : null}

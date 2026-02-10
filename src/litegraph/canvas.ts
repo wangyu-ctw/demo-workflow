@@ -156,7 +156,7 @@ export class LGraphCanvas {
   private drawGrid() {
     const width = this.canvas.width / this.pixelRatio / this.scale;
     const height = this.canvas.height / this.pixelRatio / this.scale;
-    this.ctx.strokeStyle = "#151515";
+    this.ctx.strokeStyle = "#b6b6b6";
     this.ctx.lineWidth = 1;
     const gridSize = 24;
     const startX = Math.floor(-this.offset[0] / gridSize) * gridSize;

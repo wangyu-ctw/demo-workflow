@@ -141,7 +141,7 @@ export default function App() {
   }, [setGraph, setNodes]);
 
   return (
-    <div className="app-shell" ref={containerRef}>
+    <div className="flex h-full w-full" ref={containerRef}>
       <Sidebar
         onAddNode={(nodeId: number) => graphApiRef.current?.addNodeAtCenter(nodeId)}
         onOpenCreateNode={() => setIsCreateNodeOpen(true)}
@@ -149,8 +149,8 @@ export default function App() {
         disabled={!editing}
       />
       <GraphToolbar />
-      <main className="main-content">
-        <canvas id={CANVAS_ID} className="graph-canvas" />
+      <main className="relative h-full min-w-0 flex-1">
+        <canvas id={CANVAS_ID} className="block h-full w-full bg-[#f0f0f0]" />
         {!editing ? <WorkflowStatusLegend /> : null}
         {nodeToolbar && editing ? (
           <NodeToolbar
@@ -168,8 +168,8 @@ export default function App() {
           />
         ) : null}
         {isLoading ? (
-          <div className="loading-overlay">
-            <FiLoader className="loading-spinner" />
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center gap-2.5 bg-[rgba(10,12,16,0.6)] text-[13px] text-[#c8d0db]">
+            <FiLoader className="h-[18px] w-[18px] animate-spin" />
             <span>加载中...</span>
           </div>
         ) : null}

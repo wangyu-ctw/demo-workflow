@@ -1,6 +1,5 @@
 import { WorkflowStatus } from "../../types/workflow";
 import { WORKFLOW_STATUS_COLORS } from "../../utils/constants";
-import "./style.css";
 
 const STATUS_LABELS: Array<{ status: WorkflowStatus; label: string }> = [
   { status: WorkflowStatus.PENDING, label: "待执行" },
@@ -13,19 +12,19 @@ const STATUS_LABELS: Array<{ status: WorkflowStatus; label: string }> = [
 
 export function WorkflowStatusLegend() {
   return (
-    <div className="workflow-status-legend">
+    <div className="absolute bottom-5 right-5 flex items-center gap-3 rounded-[10px] border border-[#2a2a2a] bg-[rgba(15,17,21,0.72)] px-3 py-2 text-xs text-[#c8d0db] backdrop-blur-[6px]">
       {STATUS_LABELS.map((item) => (
-        <div className="workflow-status-legend__item" key={item.status}>
+        <div className="flex items-center gap-1.5 whitespace-nowrap" key={item.status}>
           <span
-            className="workflow-status-legend__dot"
+            className="h-2.5 w-2.5 shrink-0 rounded-full"
             style={{ backgroundColor: WORKFLOW_STATUS_COLORS[item.status] }}
           />
           <span>{item.label}</span>
         </div>
       ))}
-      <div className="workflow-status-legend__item">
+      <div className="flex items-center gap-1.5 whitespace-nowrap">
         <span
-          className="workflow-status-legend__dot workflow-status-legend__dot--hollow"
+          className="h-2.5 w-2.5 shrink-0 rounded-full border-2 border-solid bg-transparent box-border"
           style={{ borderColor: WORKFLOW_STATUS_COLORS[WorkflowStatus.DONE] }}
         />
         <span>点击可查看节点输出</span>
